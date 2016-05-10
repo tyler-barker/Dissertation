@@ -1,0 +1,212 @@
+\section{Implementation of rPCF}
+
+An implementation of Randomized PCF has been developed using the Standard ML programming language (SML).  The parser and interpreter for rPCF are adapted from an implementation of PCF by Jon Riecke.  Source code for Randomized PCF follows the BNF grammar displayed in Table \ref{rpcfbnf}.
+
+In the grammar, \texttt{x} is an variable and \texttt{n} is a natural number.  \texttt{fn x => e} is $\lambda x.e$ and \texttt{rec x => e} is $\mu x.e$.  \texttt{\{e | e\}} is how to define a random choice between two expressions.  It creates a node, $\Node (e, e)$.  Every \texttt{let} expression must be terminated with the \texttt{end} keyword.
+
+\floatstyle{boxed}
+\restylefloat{figure}
+\restylefloat{table}
+
+\begin{table}
+\texttt{
+\begin{tabular}{rl}
+e ::= &  x | n | true | false | succ | pred | iszero | \\
+& if e then e else e | fn x => e | e e |  \\
+& rec x => e | \{e | e\} | (e) | \\
+& let x = e in e end
+\end{tabular}} 
+\caption{BNF grammar for rPCF} \label{rpcfbnf}
+\end{table}
+
+An SML program parses the source code to form an abstract syntax tree.  Nodes of the tree have type \texttt{rc\_term}, which are terms that can have random choice.  Nodes without random choice are of the form \texttt{Leaf term}, where terms have no random choice.  \texttt{rc\_term} and \texttt{term} are defined in Figure \ref{rpcfterms}.
+\begin{figure}
+\begin{lstlisting}[language=ML]
+datatype term = AST_ID of string | AST_NUM of int 
+              | AST_BOOL of bool | AST_ERROR of string 
+              | AST_SUCC | AST_PRED | AST_ISZERO
+              | AST_FUN of (string * rc_term) 
+              | AST_REC of (string * rc_term) 
+and lazy rc_term = LEAF of term
+                 | AST_APP of (rc_term * rc_term) 
+                 | AST_IF of (rc_term * rc_term * rc_term) 
+                 | NODE of (rc_term * rc_term)
+\end{lstlisting}
+\caption{Terms of rPCF} \label{rpcfterms}
+\end{figure}
+In SML, the keyword \texttt{and} is used to make mutually recursive datatypes.  \texttt{AST\_ID of string} represents a variable and contains a string.  \texttt{AST\_ERROR} contains a string that will be displayed if an error occurs.  The rest of the terms are self-explanatory.
+
+This abstract syntax tree then gets interpreted according to the semantic rules.  First a function \texttt{subst:rc\_term -> string -> rc\_term -> rc\_term} is defined to perform term substitution.  \texttt{subst M x N} represents $M[N/x]$.  For example, substitution for function application is defined by:
+\begin{lstlisting}[language=ML]
+subst (AST_APP(e1,e2)) x t = AST_APP((subst e1 x t),(subst e2 x t))
+\end{lstlisting}
+This represents the substitution rule, $(e1\ e2)[t/x] = (e1[t/x])(e2[t/x])$.
+
+Now that substitution is defined, a function \texttt{interp:rc\_term -> rc\_term} is defined that reduces terms based on the small step and big step semantics of rPCF.  For example, the reduction of a recursive term is given by:
+\begin{lstlisting}[language=ML]
+interp(LEAF(AST_REC(x,e))) = interp(subst e x (LEAF(AST_REC (x,e))))
+\end{lstlisting}
+This implements the transition rule, $\mu x.M -> M{[}\mu x.M/x{]}$.  
+
+A conditional term of the form \texttt{if e1 then e2 else e3} is reduced using:
+\begin{lstlisting}[language=ML]
+interp (AST_IF (e1, e2, e3)) = (case (interp e1) of
+    (LEAF (AST_BOOL true))  => interp e2
+  | (LEAF (AST_BOOL false)) => interp e3
+  | (NODE (l, r))     => NODE (tails (interp (AST_IF (l, e2, e3))), 
+                               heads (interp (AST_IF (r, e2, e3))))	
+
+\end{lstlisting}
+Here the boolean \texttt{e1} is reduced first.  If it is the leaf value \texttt{true}, then \texttt{e2} is reduced and returned.  If it is the leaf value \texttt{false}, \texttt{e3} is reduced and returned.  Finally, if \texttt{e1} is a random choice of booleans of the form \texttt{NODE (l, r)}, then a node is created.  The left subtree is created by reducing the conditional statement with \texttt{l} as the boolean value.  However, the entire reduced term is not used.  The function \texttt{tails} is applied to extract the left subtree of the reduced term.  This matches the behavior of rPCF's semantics.  Similarly, the right subtree is filled by reducing the conditional statement with \texttt{r}, and the right subtree is extracted using the \texttt{heads} function.  The entire definitions for \texttt{subst} and \texttt{interp} can be found in the attached source code.
+
+\begin{figure}
+\begin{lstlisting}[language=ML]
+fun rc_interp_n t n = if n = 0 then getValue t nil else
+    (case (interp t) of
+        (LEAF x)      => x
+      | (NODE (l,r))  => (case (Random.randRange (0,1) rng) of
+            0         => rc_interp_n l (n-1)
+          | 1         => rc_interp_n r (n-1))
+\end{lstlisting}
+\caption{Random Traversal of rPCF Trees} \label{rcinterp}
+\end{figure}
+
+Applying \texttt{interp} to a term results in a semantic value, which only has nodes and leaves.  Execution of a program involves a random traversal of this binary tree, using pseudorandom bits supplied by SML's built-in libraries.  To ensure that the traversal terminates, a bound is placed on the number of random bits to use.  This traversal is done with the function \texttt{rc\_interp\_n}, defined in Figure \ref{rcinterp}.
+
+One important thing to note is that the creation and interpretation of the abstract syntax tree are done lazily.  Since only one branch of random choices will be chosen, it would be very inefficient to evaluate the entire tree.  Instead, only the branch corresponding to the random choices ever gets evaluated.  This lazy evaluation also allows for the creation of infinite trees, which are needed to implement randomized algorithms whose error probability converges to zero.
+
+\subsubsection{Programming in rPCF}
+
+\begin{figure}
+\begin{lstlisting}[language=rPCF]
+let factorial = rec f =>
+	fn n => if iszero n then 1 else (* n (f (- n 1)))
+in
+    factorial 5  
+end
+\end{lstlisting}
+\caption{The Factorial Function in rPCF} \label{rpcffactorial}
+\end{figure}
+
+\begin{figure}
+\begin{lstlisting}[language=rPCF]
+let choose = fn n => let help = rec h => fn x => fn y => 
+             if iszero x 
+             then y 
+             else {h (pred x) (* 2 y) | h (pred x) (succ (* 2 y))} 
+    in help n 0 end
+in
+    choose 5
+end
+\end{lstlisting}
+\caption{Choosing a Random Integer in rPCF} \label{rpcfchoose}
+\end{figure}
+
+An example program using this implementation of rPCF is:
+\begin{lstlisting}[language=rPCF]
+let plus = rec p =>
+    fn x => fn y => if iszero x then y else p (pred x) (succ y)
+in
+    plus 2 3
+end
+\end{lstlisting}
+This just defines addition using pred and succ and adds 2 and 3 together.  There is no randomness involved in evaluating this program; it should always evaluate to 5.  This exact program could be used for an implementation of PCF, without randomness.  Basic PCF embeds in rPCF so that any rPCF program without randomness will just look like a PCF program.  The above code can be altered to include some randomness as follows:
+\begin{lstlisting}[language=rPCF]
+let plus = rec p =>
+    fn x => fn y => if iszero x then y else p (pred x) (succ y)
+in
+    plus 2 {3 | 4}
+end
+\end{lstlisting}
+Now instead of adding 2 and 3, there is a random choice made between 3 and 4.  Evaluations of this program will result in 5 or 6, randomly.  The number 2 can also be changed into a random choice.
+\begin{lstlisting}[language=rPCF]
+let plus = rec p =>
+    fn x => fn y => if iszero x then y else p (pred x) (succ y)
+in
+    plus {1 | 2} {3 | 4}
+end
+\end{lstlisting}
+In this case, program evaluation will result in either 4 or 6.  Note that 5 is not a possible result.  This is due to the nature of the Kleisli extension of the random choice monad.
+
+\begin{figure}
+\begin{lstlisting}[language=rPCF]
+let eq = fn n => fn m => iszero (- n m)
+in
+
+let power2 = fn n => 
+    let power = rec p => fn m => fn a => 
+        if iszero m then a 
+                    else (p (pred m) (* 2 a))
+        in power n 1
+    end
+in
+
+let twos = rec t => fn n =>
+    if (iszero (% n 2)) then (succ (t (/ n 2))) 
+                        else 0
+in
+	
+let powmodhelp = rec p => fn x => fn n => fn m => fn a => 
+    if iszero n then a 
+                else (p x (pred n) m (% (* x a) m))
+in
+
+let powmod = fn x => fn n => fn m => 
+    powmodhelp x n m 1
+in
+	
+let sloop = rec s => fn x => fn n => fn i =>
+    if (iszero i) then false 
+        else (if (eq 1 (powmod x 2 n)) then false 
+            else (if (eq (- n 1) (powmod x 2 n))
+                then true 
+                else (s (powmod x 2 n) n (pred i))))
+in
+\end{lstlisting}
+\caption{Implementation of Miller-Rabin in rPCF} \label{rpcfmr1}
+\end{figure}
+
+Defining addition recursively in terms of succ and pred and then defining multiplication in terms of addition is very inefficient.  In order to speed up basic mathematical calculations, the implementation of rPCF was changed to use SML's mathematical operations.  The implementation uses prefix notation, so \texttt{(+ 2 3)} will add 2 and 3.  Addition, subtraction, multiplication, division, and the modulo operator are implemented in this fashion.  Now a factorial function can be programmed as shown in Figure \ref{rpcffactorial}.
+
+\begin{figure}
+\begin{lstlisting}[language=rPCF]
+let or = fn a => fn b => if a then true else b
+in
+	
+let miller = fn n => fn a =>
+    (let s = twos (pred n) in 
+    (let d = / (pred n) (power2 s) in 
+    (let x = powmod a d n in 
+        (or (eq x 1) (or (eq x (pred n)) (sloop x n s))) 
+    end) end) end)
+in
+
+let millerrabin = fn p => 
+    let help = rec h => fn n => fn x => fn y => fn a => 
+        if iszero x then 
+            (if (miller n (+ 2 a)) then (h n y y 0) 
+                                   else false) 
+            else {h n (pred x) y (% (* 2 a) (- n 3)) | 
+                  h n (pred x) y (% (succ (* 2 a)) (- n 3))}
+    in
+        help p 16 16 0
+    end
+in
+
+    millerrabin 91
+
+end end end end end end end end end
+\end{lstlisting}
+\caption{Miller-Rabin Implemented in rPCF (Continued)} \label{rpcfmr2}
+\end{figure}
+
+The randomness seen so far is just using one random bit.  Oftentimes, it is desired to obtain some random natural number.  This can be accomplished by using multiple random bits.  For $n$ random bits, a choice can be made among $2^{n}$ natural numbers.  Such a choice function can be programmed as shown in Figure \ref{rpcfchoose}.
+The term \texttt{choose 5} will randomly return a natural number from 0 to 31.   
+
+Now this type of choice function can be used to implement a randomized algorithm on natural numbers, such as the Miller-Rabin algorithm.  An implementation of Miller-Rabin is included in Figures \ref{rpcfmr1} and \ref{rpcfmr2}.
+
+This creates a possibly infinite tree of random choices.  A random integer is chosen between $2$ and $n-2$ using $16$ bits.  This random integer is then tested according the Miller-Rabin algorithm.  If the test result is composite, then \texttt{false} is returned.  Miller-Rabin is never sure if a number is prime, so if the test result is prime, then another random choice is made.  Thus, for any prime number, every branch in the random choice tree is infinite. 
+
+Note that in this implementation of the Miller-Rabin algorithm, there is no limit placed on the number of random bits used.  This limit only gets placed when the program is executed. Using $16*m$ bits will run the Miller-Rabin test a maximum of $m$ times.  If, after using the specified number of random bits, a leaf is not reached, then the term \texttt{BOT} is returned.  For Miller-Rabin, \texttt{BOT} means ``probably true''.
+
+Finally, we can combine two Miller-Rabin primality tests using a boolean operation like \texttt{or}.  Executing a program with the term \texttt{or (millerrabin 91) (millerrabin 97)} will use the same random bits to test whether 91 or 97 is prime, matching the behavior of Kleisli extension explained in Section \ref{mr}.

@@ -1,0 +1,649 @@
+%\chapter{A Monad of Random Choice}
+
+\input{motiv}
+
+\section{The Random Choice Functor}
+
+This work is inspired by a model of uniform continuous random variables first proposed by Goubault-Larrecq and Varacca \cite{GLV-lics2011}.  In their paper, it was shown that the category of bounded complete domains (\textsf{BCD}) is closed under a similar construction.  However, their assertion that the construction forms a monad in \textsf{BCD} was incorrect, since the proposed Kleisli extension failed to be monotone, thus not Scott continuous. 
+
+The basic idea is to separate the random choices from the domain itself.  In the probabilistic powerdomain, the probability distributions are placed on the underlying domain, $D$.  Here, random bits are chosen ($0$ and $1$), forming a binary tree, $M$, of all possible choices. Then a function, $f$, is defined from these random choices of bits to the underlying domain (so $f:M\to D$).  In the probabilistic powerdomain, for an element $d$, making a choice between $d$ and $d$ ($d\oplus d$) is the same as just $d$, since the probabilities are the same.  Here, there is distinction between $d\oplus d$ and $d$.  In the first case, a random bit is still chosen, so programmatically, 
+this is distinct from the latter case where no such choice is made.
+
+Let $\{0,1\}^\infty = \{0,1\}^{*} \cup \{0,1\}^\omega$ be the set of finite and infinite words of alphabet $\{0,1\}$, with the prefix order ($w\leq w'$ if $w$ is a prefix of $w'$).  The symbol $*$ is used to denote the concatenation operation.  In this setting, a 0 represents getting tails on a coin flip, and a 1 signifies heads.  The probabilities associated with the coin do not need to be specified here.  Any coin or oracle that returns random bits will work.  Of course, the probability distribution of the random oracle will determine the probabilistic behavior of the resulting randomized algorithm.
+
+\subsection[Properties of $\{0,1\}^\infty$]{Properties of $\boldsymbol{\{0,1\}^\infty}$}
+
+The set of finite and infinite words with alphabet $\{0,1\}$ is clearly a poset with the prefix order and a dcpo since it includes the infinite words.  The first lemma is obvious.  
+
+
+\begin{lemma} \label{prefixchain}
+The prefixes of a word form a chain.  If two words, $w$ and $w'$, are both prefixes of another word $z$, then $w\leq w'$ or $w'\leq w$.  Therefore, any directed set in $\{0,1\}^\infty$ must actually be a chain.
+\end{lemma}
+
+\begin{lemma}
+$\{0,1\}^\infty$ is a dcpo.
+\end{lemma}
+\begin{proof}
+Any directed set is a chain.  If the chain only has finitely many distinct words, then the biggest one is the supremum.  If there are infinitely many distinct words, they must all be under some infinite word, $w\in \{0,1\}^\omega$, which is the supremum.
+\hfill $\blacksquare$
+\end{proof}
+Here are some more properties of $\{0,1\}^\infty$ that will prove useful.
+
+\begin{figure}
+\[
+\xymatrix@!0@C=4pc{
+& & & & & & & &\\
+&00\ar@{..}[ul]\ar@{..}[ur] & & 01\ar@{..}[ul]\ar@{..}[ur] & & 10\ar@{..}[ul]\ar@{..}[ur] & & 11\ar@{..}[ul]\ar@{..}[ur] & \\
+& & 0\ar@{-}[ul]\ar@{-}[ur] & & & & 1\ar@{-}[ul]\ar@{-}[ur] \\
+& & & & \epsilon\ar@{-}[ull]\ar@{-}[urr] \\
+}
+\]
+\caption{Hasse diagram of $\{0,1\}^\infty$}
+\end{figure}
+
+\begin{lemma}
+The finite elements of $\{0,1\}^\infty$, $K(\{0,1\}^\infty)$, are precisely the finite words.
+\end{lemma}
+\begin{proof}
+A finite word only has finitely many prefixes.  Thus, a directed set, or chain, whose supremum is above a finite word $w$ must contain a word above $w$.  If a word is infinite, then its finite prefixes form a chain whose supremum is the infinite word and yet does not contain that infinite word. \hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+$\{0,1\}^\infty$ is an algebraic domain.
+\end{proposition}
+\begin{proof}
+Every word, finite or infinite, is the supremum of its finite prefixes.  These prefixes form a chain, so they are directed.
+\hfill $\blacksquare$
+\end{proof}
+
+The Scott topology of an algebraic domain has a basis consisting of the upper sets of finite elements.  Thus, the set $\{\ua w\ |\ w \in \{0,1\}^{*}\}$ is a basis for the Scott topology of $\{0,1\}^\infty$.  Any open set is of the form $\bigcup_{w\in K} \ua w$, for some $K\subseteq \{0,1\}^{*}$.
+
+\begin{proposition}
+$\{0,1\}^\infty$ is Scott compact.
+\end{proposition}
+\begin{proof}
+Any open covering of $\{0,1\}^\infty$ must contain the empty word.  However, the only Scott open set containing the empty word is $\{0,1\}^\infty$ itself.  Thus, $\{0,1\}^\infty$ is Scott compact.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+$\{0,1\}^\infty$ is coherent.
+\end{proposition}
+\begin{proof}
+By Proposition 4.38 of \cite{mislove1998topology}, a Scott compact domain $P$ is coherent if and only if for any finite sets, $F,G\subseteq K(P)$, there exists another finite set, $H\subseteq K(P)$ such that $\ua F \ \cap \ua G =\, \ua H$.  If this intersection is empty, then setting $H$ as the empty set satisfies this equality.  If $F$ and $G$ are finite sets of finite words, then let $H = \{w\in F\ |\ \exists z\in G, z\leq w\} \cup \{w\in G\ |\ \exists z\in F, z\leq w\}$.  If $w\in\, \ua F \ \cap \ua G$, then there is a $v\in F$ such that $v\leq w$ and a $z\in G$ such that $z\leq w$.  Since $v$ and $z$ are both prefixes of $w$, they must compare.  If $v\leq z$, then by the definition of $H$, $z\in H$.  Similarly, if $z\leq v$, then $v\in H$.  Therefore, either $v$ or $z$ is in $H$, so $w\in\, \ua H$.  Conversely, if $w\in\, \ua H$, then $z\leq w$ for some $z\in H$.  Again, by the definition of $H$, $z$ is either in $F$ and above some word in $G$ or it is in $G$ and above some word in $F$.  In either case, $w$ is above some word of both $F$ and $G$, so $w\in\, \ua F \ \cap \ua G$.
+\hfill $\blacksquare$
+\end{proof}
+
+\subsection{Definition of the Functor}
+
+\begin{figure}
+\[
+\begin{xy}
+(45,30)*{} = "v0";
+(0,15)*{} = "v1";%
+(30,15)*{} = "v2";%
+(15,0)*{} = "v3";%
+(100,30)*{} = "v6";%
+(130,30)*{} = "v7";%
+(75,15)*{} = "v8";%
+(115,15)*{} = "v9";%
+(95,0)*{} = "v10";%
+{\ar@{-} "v2"; "v0"};%
+{\ar@{-} "v3"; "v1"};%
+{\ar@{-} "v3"; "v2"};%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+\end{xy}
+\]
+\caption[Full Antichains]{The top of the left tree does not form a full antichain, but the right tree does.}
+\end{figure}
+
+\begin{definition}
+An \emph{antichain} of $\{0,1\}^\infty$ is a subset of words such that no two distinct words are comparable (no word is a prefix of another word).  A nonempty antichain $M$ is considered \emph{full} if $\forall w\in \{0,1\}^{\omega}, \exists z\in M, z\leq w$.  Alternatively, $\{0,1\}^{\omega}\subseteq\ \ua\! M$, or $M\sqsubseteq_{EM} \{0,1\}^{\omega}$.  Denote the full antichains by $FAC(\{0,1\}^\infty)$.
+\end{definition}
+
+Using coin flips in a program results in a branching of computation that can be represented as a binary tree.  The final possible outcomes will be located at the leaves of this tree, which must form an antichain.  This antichain is required to be full since for any coin flip, it is assumed that either heads or tails appears, and both outcomes must be accounted for.  The idea of using antichains comes from \cite{GLV-lics2011}.
+
+\begin{definition}
+For a category of domains, the functor of random choice, $RC$, is defined on objects by \[RC(D) = \{(M,f)\ |\ M \in FAC(\{0,1\}^\infty), f:M\rightarrow D\}\] where $f$ is Scott continuous, giving $M$ the subspace topology from the Scott topology of $\{0,1\}^\infty$.
+\end{definition}
+For a morphism $a:D\rightarrow D'$ and $(M,f) \in RC(D)$, the functor acts on $a$ as follows:
+\[RC(a)(M,f) = (M,a\circ f)\]
+
+For a domain $D$, we order $RC(D)$ by $(M,f)\sqsubseteq (N,g)$ if and only if $M\sqsubseteq_{EM} N$ and ${w\leq z \Rightarrow f(w) \sqsubseteq g(z)}, {\forall w\in M, z\in N}$.  Since the antichains are required to be full, $M\sqsubseteq_{EM} N$ is equivalent to $M\subseteq\, \da N$.  If $M$ is an antichain and $M \sqsubseteq_{EM} N$, then for each $z\in N$, there is exactly one $w\in M$ such that $w\leq z$.  Thus, we can project the words of $N$ down to the words of $M$ in a unique, well defined manner.  We call this function $\pi_M$.  Using this, another characterization for the order on functions is $\forall z\in N, f\circ \pi_M (z) \sqsubseteq g(z)$.
+
+For $(M,f)$ in $RC(D)$, we will use $\pi_1$ and $\pi_2$ to single out the individual components.  $\pi_1(M,f) = M$ and $\pi_2(M,f) = f$.
+
+Now it will be shown that if $D$ is a bounded complete domain, then so is $RC(D)$.  A proof of this for a similar structure can be found in \cite{mislove2013anatomy}.  In fact, many of the following proofs fall easily from results found there.  First, we consider the full antichains, $FAC(\{0,1\}^\infty)$.
+
+\subsection[Properties of $FAC(\{0,1\}^\infty)$]{Properties of $\boldsymbol{FAC(\{0,1\}^\infty)}$}
+
+\begin{lemma}\label{lawsonclosed}
+For any antichain $X \in FAC(\{0,1\}^\infty)$, $\da X$ is Scott closed.  Furthermore, $X$ is Lawson closed.
+\end{lemma}
+\begin{proof}
+$\da X$ is obviously a lower set, so we just need to check the suprema of directed sets.  In $\{0,1\}^\infty$, all directed sets are simply chains (Lemma \ref{prefixchain}).  The only way that one of these chains, $D$, can fail to contain its supremum is if the supremum of $D$ is an infinite word, $w\in \{0,1\}^\omega$.  Since $X$ is a full antichain, it contains exactly one $z$ such that $z\leq w$.  If $z$ were finite, then $\da X$ could not contain $D$ since $D$ must contain words above $z$ (and under $w$).  Thus, $z$ must be $w$, and $X$ is Scott closed.   By Proposition 3.4 in \cite{mislove2014anatomy}, $X$ is Lawson closed. \hfill $\blacksquare$
+\end{proof} 
+
+\begin{lemma}
+$FAC(\{0,1\}^\infty)$ is a subset of the convex powerdomain, $\mathcal{P}_C(\{0,1\}^\infty)$.
+\end{lemma}
+\begin{proof}
+For $X\in FAC(\{0,1\}^\infty)$, it must be the case that $X = \overline{X}\ \cap \ua X =\, \da X\ \cap \ua X$ (since $\da X$ is closed).  For any $d\in\, \da X\ \cap \ua X, \exists x\in X$ so that $d\leq x$ and $\exists y\in X$ so that $y\leq d$.  Since $X$ is an antichain, $y\leq d \leq x$ implies that $y = d = x$, so $\da X\ \cap \ua X \subseteq X$.  The other direction of containment is obvious.
+\hfill $\blacksquare$
+\end{proof}
+
+The following proposition is well known for the convex powerdomain \cite{mislove1998topology}.
+\begin{proposition}
+If $D$ is a coherent domain, then so is $\mathcal{P}_C(D)$.
+\end{proposition}
+\begin{corollary}
+$\mathcal{P}_C(\{0,1\}^\infty)$ is a coherent domain.
+\end{corollary}
+Now we show that $FAC(\{0,1\}^\infty)$ is a sub-dcpo of $\mathcal{P}_C(\{0,1\}^\infty)$.
+\begin{lemma}
+Suppose that $X\in FAC(\{0,1\}^\infty)$ and that $S \in \mathcal{P}_C(\{0,1\}^\infty)$.  If ${X\sqsubseteq_{EM} S}$, then ${X\sqsubseteq_{EM} \textup{\Min}(S)}$.
+\end{lemma}
+\begin{proof}
+It is given that $S \subseteq\, \ua X$ and $X\subseteq\, \da S$.  Since $S \subseteq\, \ua X$, $\Min(S) \subseteq\, \ua X$.  What is left to show is that $X\subseteq \da \Min(S)$.  Suppose there is some $x\in X$ not below any word of $\Min(S)$.  $X\subseteq\, \da S$, so $\exists s\in S$ such that $x\leq s$.  There is also some word $m \in \Min(S)$ such that $m\leq s$.  Both $x$ and $m$ are prefixes of $s$, so they must compare, and since $x\notin\, \da \Min(S)$, $m<x$.  However, $\Min(S) \subseteq\, \ua X$, so $\exists y\in X$ such that $y\leq m$.  But this implies $y<x$ which contradicts $X$ being an antichain.  Therefore, the claim holds. \hfill$\blacksquare$
+\end{proof}
+
+\begin{lemma}
+$FAC(\{0,1\}^\infty)$ is a dcpo.
+\end{lemma}
+\begin{proof}
+Since $\{0,1\}^\infty$  is a dcpo, the convex powerdomain, $\mathcal{P}_C(\{0,1\}^\infty)$, is a dcpo, and $FAC(\{0,1\}^\infty)$ is a subset that uses the same order.  Let $D$ be a directed set in $FAC(\{0,1\}^\infty)$.  There must a supremum, $S$, in $\mathcal{P}_C(\{0,1\}^\infty)$.  All that is left to show is that $S$ is a full antichain.  For every element $d\in D$, $d\sqsubseteq_{EM} \{0,1\}^{\omega}$. Therefore, $S\sqsubseteq_{EM} \{0,1\}^{\omega}$, and $S$ is full.  If $S$ were not an antichain, it could be replaced with $\Min(S)$, the minimal elements of $S$.  $\Min(S) \subseteq\, \da S$ and $S \subseteq\, \ua \Min(S)$, so $\Min(S) \sqsubseteq_{EM} S$.  From the previous lemma, if $S$ is an upper bound for $D$, then so is $\Min(S)$.  Thus, $S$ could not be the supremum. \hfill $\blacksquare$
+\end{proof}
+In fact, $FAC(\{0,1\}^\infty)$ is a complete lattice, as shown here.
+\begin{lemma}\label{supantichains}
+For any two antichains, $X,Y\in FAC(\{0,1\}^\infty)$, the supremum of $X$ and $Y$, $X \vee Y$ is equal to $\mathrm{Max}(X\cup Y)$.
+\end{lemma}
+\begin{proof}
+Clearly, $X,Y\subseteq \,\da\! \mathrm{Max}(X\cup Y)$.  Now to show $\mathrm{Max}(X\cup Y) \subseteq\, \ua\! X\ \cap\! \ua\! Y$, let $m$ be in $\mathrm{Max}(X\cup Y)$.  Without loss of generality, let $m\in X$ (so $m\in\, \ua X$).  It must be shown that $m\in\, \ua Y$.  Pick any $z\in \{0,1\}^{\omega}$ such that $m\leq z$.  Since $Y$ is full, there is some $y\in Y$ such that $y\leq z$.  Thus, $y$ and $m$ are comparable.  Since $m$ is maximal, it cannot be the case that $m < y$.  Therefore, $y\leq m$, and $m\in\, \ua Y$.
+
+This shows that $X,Y\sqsubseteq_{EM} \mathrm{Max}(X\cup Y)$.  Now let $X,Y\sqsubseteq_{EM} Z$.  Then $X\cup Y\subseteq\, \da\! Z$, so $\mathrm{Max}(X\cup Y) \subseteq\, \da Z$.  Therefore, $\mathrm{Max}(X\cup Y) \sqsubseteq_{EM} Z$.  \hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+$FAC(\{0,1\}^\infty)$ is a complete lattice.
+\end{proposition}
+\begin{proof}
+The above lemma shows that any nonempty subset in $FAC(\{0,1\}^\infty)$ can be made directed by adding the supremum of each pair of elements without changing the supremum of the set.  Since $FAC(\{0,1\}^\infty)$ is a dcpo, every nonempty subset has a supremum.  The antichain, $\{\epsilon\}$, only containing the empty word, is the bottom element, which is the supremum of the empty set.  Thus, all subsets have a supremum, and $FAC(\{0,1\}^\infty)$ is a complete lattice. \hfill $\blacksquare$
+\end{proof}
+
+\begin{fact} \label{antichainsup}
+For any nonempty subset $\{M_{i}\}$ in $FAC(\{0,1\}^\infty)$, the supremum of the subset can be found by $\bigsqcup_{i} M_i = \textup{\Min}\  \bigcap_{i} \ua M_{i}$.
+\end{fact}
+The following two lemmas characterize the finite elements of $FAC(\{0,1\}^\infty)$.
+\begin{lemma}\label{finiteantichains}
+If an antichain $X\in FAC(\{0,1\}^\infty)$ only contains finite words, then it is a finite set.
+\end{lemma}
+\begin{proof}
+$X$ is a Lawson closed subset of $\{0,1\}^\infty$ by Lemma \ref{lawsonclosed}, which is coherent (thus Lawson compact).  Therefore, $X$ is Lawson compact.  The set $\{\ua w\ |\ w\in X\}$ forms an open cover of $X$ since each $w$ is finite.  There must be a finite subcover, and since $X$ is an antichain, $X$ must be finite. \hfill $\blacksquare$
+\end{proof}
+
+The following theorem from \cite{mislove2014anatomy} will be useful in showing that $FAC(\{0,1\}^\infty)$ is a domain.
+
+\begin{theorem}\label{AntichainProjections}
+Let $A$ be a finite set, and for each $n$, let $\pi_n : A^\infty -> A^{\leq n} \equiv
+\{s \in A^{*}\ |\ |s| \leq n\}$ be the projection onto the set of words of length at most $n$.
+Then $\pi_n$ is continuous for each $n$, where we endow $A^\infty$ and $A^{\leq n}$ with either the
+Scott or Lawson topologies. Moreover,
+\begin{enumerate}
+\item Each Lawson-compact antichain $X \subseteq A^\infty$ satisfies $\{\pi_n(X)\}_n$ is a directed
+family of finite antichains satisfying $\mathrm{sup}_n \pi_n(X) = X$.
+\item Conversely, each directed family of finite antichains $F_n \subseteq A^{\leq n}$ satisfies
+$\mathrm{sup}_n F_n = X$ is a Lawson-compact antichain in $A^\infty$ satisfying $\pi_n(X) = F_n$
+for each $n$.
+\end{enumerate}
+\end{theorem}
+
+\begin{lemma}
+The finite elements of $FAC(\{0,1\}^\infty)$ are precisely the antichains containing only finite words.
+\end{lemma}
+\begin{proof}
+A full antichain with only finite words has finitely many elements by Lemma \ref{finiteantichains}, so there is a finite number of antichains below it.  Therefore, it must be finite.  If an antichain $X$ contains an infinite word, then $\{\pi_n(X)\}_n$ from the above theorem is a directed family of full antichains whose supremum is $X$.  Everything in the directed family is finite, so it does not contain $X$.  Therefore, $X$ is not finite.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+$FAC(\{0,1\}^\infty)$ is a algebraic domain.
+\end{proposition}
+\begin{proof}
+It must be shown that for any $X\in FAC(\{0,1\}^\infty)$, $X = \bigsqcup \bigl(\da X \cap K(FAC(\{0,1\}^\infty))\bigr)$.  The directedness is trivial since the supremum of two finite antichains is also finite, by Lemma \ref{supantichains}.  Clearly, $\bigsqcup \bigl(\da X \cap K(FAC(\{0,1\}^\infty))\bigr) \sqsubseteq_{EM} X$.  For the other direction, again consider the family $\{\pi_n(X)\}_n$, whose elements are all finite and below $X$. Then \[\bigsqcup \bigl(\da X \cap K(FAC(\{0,1\}^\infty))\bigr) \sqsupseteq_{EM} \bigsqcup \{\pi_n(X)\}_n = X\]  Thus, $FAC(\{0,1\}^\infty)$ is algebraic. \hfill $\blacksquare$
+\end{proof}
+
+\subsection{Properties of the RC Functor}
+
+Now that properties of the antichains have been proven, attention must turn to the second component of the $RC$ functor:  the functions.  Again, for an element $(M,f) \in RC(D)$, the function $f$ must be continuous from the relative Scott topology of $M$ to the Scott topology of $D$.  This continuity restricts where a function can send an infinite word.  If a function has a sudden jump upwards at an infinite word, it will fail to be continuous.  An example of this can be seen in Figure \ref{RelativeScottContinuity}.
+
+A certain characterization of continuous functions will be useful in proving some pairs, $(M,f)$, are actually elements of $RC(D)$ for some $D$.  A function $f:M->D$ is continuous at a point $w$ if for any open set, $U$, of $D$ containing $f(w)$, there is an open set, $V$, of $M$ containing $w$ such that $f(V) \subseteq U$.  A function is continuous if and only if it is continuous at every point.  Note that for a function $f:FAC(\{0,1\}^\infty) -> D$, $f$ is continuous at any finite word, $w$, since $\ua w$ is an open set containing $w$.
+
+\begin{figure}
+\[
+\begin{xy}
+(0,10)*+{0} = "v1";%
+(20,10)*{} = "v2";%
+(10,0)*{} = "v3";%
+(10,20)*+{1} = "v6";%
+(30,20)*{} = "v7";%
+(20,30)*+{2} = "v8";%
+(40,30)*{} = "v9";%
+(30,40)*+{3} = "v10";%
+(47,37)*{} = "v12";%
+(55,45)*+{\top} = "v11";%
+{\ar@{-} "v3"; "v1"};%
+{\ar@{-} "v3"; "v2"};%
+{\ar@{-} "v2"; "v6"};%
+{\ar@{-} "v2"; "v7"};%
+{\ar@{-} "v7"; "v8"};%
+{\ar@{-} "v7"; "v9"};%
+{\ar@{-} "v9"; "v10"};%
+{\ar@{-} "v9"; "v12"};%
+{\ar@{..} "v11"; "v12"};
+(60,10)*+{1} = "w1";%
+(80,10)*{} = "w2";%
+(70,0)*{} = "w3";%
+(70,20)*+{1} = "w6";%
+(90,20)*{} = "w7";%
+(80,30)*+{1} = "w8";%
+(100,30)*{} = "w9";%
+(90,40)*+{1} = "w10";%
+(107,37)*{} = "w12";%
+(115,45)*+{\top} = "w11";%
+{\ar@{-} "w3"; "w1"};%
+{\ar@{-} "w3"; "w2"};%
+{\ar@{-} "w2"; "w6"};%
+{\ar@{-} "w2"; "w7"};%
+{\ar@{-} "w7"; "w8"};%
+{\ar@{-} "w7"; "w9"};%
+{\ar@{-} "w9"; "w10"};%
+{\ar@{-} "w9"; "w12"};%
+{\ar@{..} "w12"; "w11"};
+\end{xy}
+\]
+\caption[Scott Continuous Functions on Antichains]{The function on the left antichain is Scott continuous, but the function on the right is not.}
+\label{RelativeScottContinuity}
+\end{figure}
+
+\begin{lemma}
+If two elements of $RC(D)$, $(M,f)$ and $(N,g)$, have an upper bound, then for all $w\in M, v\in N$, if $w$ and $v$ are comparable, then $f(w)$ and $g(v)$ have an upper bound in $D$.
+\end{lemma}
+\begin{proof}
+If there are comparable words, $w$ and $v$, such that $f(w)$ and $g(w)$ have no upper bound, then for any $z$ above $w$ and $v$, there is no value for $h(z)$ that can make $(L,h)$ an upper bound.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{corollary} \label{directedcor}
+If $\{M_i,f_i\}$ is a directed family in $RC(D)$, then for any chain of words $\{w_i\}$, where $w_i\in M_i$, the family $\{f_i(w_i)\}$ is directed.
+\end{corollary}
+
+The previous lemma and corollary can now be used to show that $RC$ is an endofunctor on the category of dcpos.
+
+\begin{proposition}
+If $D$ is a dcpo, then so is $RC(D)$.
+\end{proposition}
+\begin{proof}
+Let $\{(M_i, f_i)\}$ be a directed family in $RC(D)$.  From the previous section, the family $\{M_i\}$ has a supremum, $M$.  Now for any $w\in M$, each $M_i$ contains a $w_i$ below $w$.  Each pair of these, $w_i$ and $w_j$, are comparable, and since $\{(M_i, f_i)\}$ is directed, then $f_i(w_i)$ and $f_j(w_j)$ have an upper bound in $D$.  Thus, the family $\{f_i(w_i)\}$ is directed by Corollary \ref{directedcor}, and because $D$ is a dcpo, it has a supremum, $d_w$.  Therefore, $(M,f)$, where $f(w) = d_w$ is the supremum of the directed family $\{(M_i, f_i)\}$, as long as $f$ is continuous in the relative Scott topology of $M$.  Suppose $d \ll f(w) = \bigsqcup_{i} f_i\circ \pi_{M_i}(w)$.  Since $\Ua d$ is open, there is an $i$ such that $d \ll f_i\circ \pi_{M_i}(w)$.  Since $f_i$ is continuous, $f_i^{-1}(\Ua d)$ is open of the form $(\bigcup_{j} w_j) \cap M_i$ and $w_j\leq w$ for some $j$.  Because $(M_i,f_i)\sqsubseteq (M,f)$, $f(\ua w_j \bigcap M) \subseteq \Ua d$, so $f$ is continuous.
+\hfill $\blacksquare$
+\end{proof}
+
+A function continuous in the relative Scott topology can be decreased at a finite number of words and still remain continuous.
+
+\begin{lemma}
+Suppose $(M,f)$ is in $RC(D)$, where $D$ is a domain.  Define $f':M->D$ as follows:
+\[
+	f'(z) = \begin{cases}
+			d & \text{if } z=w \\
+			f(z) & \text{if } z\neq w
+	\end{cases}
+\]
+where $w$ is some word in $M$ and $d$ is some element of $D$ such that $d \sqsubseteq f(w)$.  Then, $(M,f') \in RC(D)$ ($f'$ is still continuous with the subspace topology on $M$).
+\end{lemma}
+\begin{proof}
+Since $M$ is an antichain, all words are separated by open sets.  For any $z\neq w$, there is an open set containing $z$ but not $w$.  Therefore, altering the function $f$ at word $w$ will not change the continuity at $z$.  All that needs to be shown is that $f'$ is still continuous at $w$.  Suppose $f'(w) \subseteq \Ua d$ for some $d\in D$.  Then $f(w) \in \Ua d$.  Since $f$ is continuous, there is an open set, $U$, containing $w$ such that $f(U) \subseteq \Ua d$.  Since open sets are of the form $\bigcup (\ua z \cap M)$, there is a $z$ such that $w\in\, \ua z$ and $f(\ua z \cap M) \subseteq \Ua d$.  Since $f'(w) \in \Ua d$ and for all other words, $f'$ is equal to $f$, then $f'(\ua z\cap M) \subseteq \Ua d$.  Thus $f'$ is continuous. 
+\hfill $\blacksquare$
+\end{proof}
+A necessary requirement can be stated for the way below relation for $RC(D)$.
+
+\begin{proposition}\label{waybelow}
+Let $D$ be a bounded complete domain.  If $(M,f) \ll (N,g)$ in $RC(D)$, then for $w\in M$, $z\in N$ such that $w\leq z$, $f(w) \ll g(z)$.
+\end{proposition}
+\begin{proof}
+Suppose there exists a $w\in M$ such that $w\leq z\in N$ and suppose that $f(w)$ is not way below $g(z)$.  Then there exists a directed family $\{d_i\}$ so that $g(z)\sqsubseteq \bigsqcup \{d_i\}$, but there is no $d_i$ such that $f(w) \sqsubseteq d_i$.  Make a new directed family $\{e_i\}$, where $e_i = g(z) \wedge d_i$.  Then $\bigsqcup \{e_i\} = g(z)$, but no $e_i$ is above $f(w)$.  Now create a directed family $\{(N,g_i)\}$, where $(N,g_i)$ is identical to $(N,g)$ except for the one particular $z$, $g_i(z) = e_i$.  From the above lemma, these functions are still continuous since $e_i \sqsubseteq g(z)$.  This directed family has a supremum, $(N,g)$, but no $(N,g_i)$ is above $(M,f)$.  This contradicts that $(M,f) \ll (N,g)$, so the claim must hold. \hfill $\blacksquare$
+\end{proof}
+The following proposition will be used to demonstrate an analogue to Theorem \ref{AntichainProjections}.
+
+\begin{proposition}
+Suppose $D$ is a bounded complete domain and $(M,f)\in RC(D)$.  Then the function $\overline{f}:\da M -> D$, defined by $\overline{f}(w) = \inf f(\ua w \cap M)$ is Scott continuous.
+\end{proposition}
+\begin{proof}
+Clearly, $\overline{f}$ is monotone.  
+Fix a $w$ in $\da M$ and suppose $\overline{f}(w) \in \Ua d$ for some $d\in D$.  If $w$ is finite, then $\ua w$ is an open set containing $w$ such that $\overline{f}(\ua w) \subseteq \Ua d$.  Now assume $w$ is an infinite word.  Then $\overline{f}(w) = f(w)$.  By the Interpolation Lemma (Theorem \ref{interpolation}) for domains, there exists some $d'$ such that $d \ll d' \ll f(w)$.  Since $f$ is continuous, there is an open set, $U$, containing $w$ such that $f(U)\subseteq \Ua d'$.  The open set must be of the form $\bigcup \ua z \cap M$, so there is a $z$ so that $w\in\, \ua z$ and $f(\ua z \cap M) \subseteq \Ua d'$.  Then, $\overline{f}(z) = \inf f(\ua z \cap M) \sqsupseteq d'$ since it is the infimum of elements all above $d'$.  Thus, $\overline{f}(\ua z) \subseteq\, \ua d' \subseteq \Ua d$.  Since sets of the form $\Ua d$ are a basis for the topology of $D$, $\overline{f}$ is continuous at $w$, and since $w$ was arbitrary, $\overline{f}$ is continuous.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{corollary} \label{projections}
+For a bounded complete domain $D$ and $(M,f)\in RC(D)$, define $\pi_n(M,f) = (\pi_n(M), \pi_n(f))$, where $\pi_n(M)$ is the projection of $M$ onto the set of words of length at most $n$, and $\pi_n(f)(w) = \inf f(\ua w \cap M)$.  Then $(M,f) = \bigsqcup_{n} \pi_n(M,f)$.
+\end{corollary}
+
+\begin{corollary}
+Suppose $D$ is a bounded complete domain and $(M,f), (N,g)$ are two elements of $RC(D)$.  If $(M,f) \ll (N,g)$, then $M$ is finite.
+\end{corollary}
+\begin{proof}
+From the above corollary, $(N,g) = \bigsqcup_{n} \pi_n(N,g)$, so it is the directed supremum of elements all with finite antichains.  If $(M,f) \ll (N,g)$, then $(M,f)$ is below some $\pi_n(N,g)$.  Thus, $M$ must also be finite.
+\end{proof}
+With this, a sufficient condition for the way below relation of $RC(D)$ can be stated.
+
+\begin{proposition}
+Let $D$ be a bounded complete domain and $(M,f), (N,g)\in RC(D)$.  If $M$ is finite with $M\sqsubseteq_{EM} N$, and if for any $w\in M, f(w)\ll \inf g(\ua w \cap N)$, then $(M,f)\ll (N,g)$.
+\end{proposition}
+\begin{proof}
+Let $\{(L_i, h_i)\}$ be a directed family with $(N,g)\sqsubseteq \bigsqcup_{i} (L_i, h_i)$.  Then $\{(L_i)\}$ is a directed family of antichains, with $N \sqsubseteq_{EM} \bigsqcup_{i}(L_i)$, so there exists some $j$ such that $M \sqsubseteq_{EM} L_j$.  Now only consider elements of $\{(L_i, h_i)\}$ such that $M \sqsubseteq L_i$.  For any $w$ in $M$, $\{\inf h_i(\ua w \cap L_i)\}$ is a directed family and $\bigsqcup_{i} \inf h_i(\ua w \cap L_i) = \inf \bigsqcup_{i} h_i(\ua w \cap L_i) \sqsupseteq \inf g(\ua w \cap N)$.  Thus, there is some $(L_w, h_w)$ such that $f(w) \sqsubseteq \inf g(\ua w \cap N)$  This can be done for each $w$ in $M$, and $M$ is finite.  The family $\{(L_i, h_i)\}$ is directed, so it contains an element $(L_z, h_z)$ that is above all such $(L_w, h_w)$.  Therefore, $(M,f) \sqsubseteq (L_z, h_z)$, and $(M,f) \ll (N,g)$.
+\hfill $\blacksquare$
+\end{proof}
+Now enough is known about the way below relation to show that the random choice functor applied to a domain results in another domain.
+
+\begin{proposition}
+If $D$ is a bounded complete domain, then $RC(D)$ is a domain.
+\end{proposition}
+\begin{proof}
+Given $(M,f)\in RC(D)$, let $(N_1,g_1)$ and $(N_2,g_2)$ be two elements way below $(M,f)$.  To show that $\Da (M,f)$ is directed, an upper bound must exist for $(N_1,g_1)$ and $(N_2,g_2)$ that is also way below $(M,f)$.  From Lemma \ref{supantichains}, there is a least upper bound, $L$, of $N_1$ and $N_2$, which must be below $M$.  For each $z\in L$, there is a $v_1$ in $N_1$ and a $v_2$ in $N_2$ below $z$.  Any word, $w$, in $M$ above $z$ is also above $v_1$ and $v_2$.  Since both $(N_1,g_1)$ and $(N_2,g_2)$ are way below $(M,f)$, $g_1(v_1) \ll f(w)$ and $g_2(v_2) \ll f(w)$ by Proposition \ref{waybelow}.  Thus, $f(w)$ is a upper bound for $g_1(v_1)$ and $g_2(v_2)$, and since $D$ is a bounded complete domain, there is a least upper bound for $g_1(v_1)$ and $g_2(v_2)$.  Now define $(L,h)$ so that $h(z)$ is the least upper bound of $g_1(v_1)$ and $g_2(v_2)$.  Since $L$ is finite, $h$ is continuous in the relative Scott topology.
+
+Clearly, $(L,h)$ is above both $(N_1,g_1)$ and $(N_2,g_2)$.  To prove that $\Da (M,f)$ is directed, it suffices to show that $(L,h)$ is also way below $(M,f)$.  Let $\{(M_i, f_i)\}$ be a directed family whose supremum is above $(M,f)$.  Then there must be some $(M_j,f_j)$ above $(N_1,g_1)$ and some $(M_k,f_k)$ above $(N_2,g_2)$. $\{(M_i, f_i)\}$ is directed, so there is a $(M_p,f_p)$ above both $(N_1,g_1)$ and $(N_2,g_2)$.  This means $N_1\sqsubseteq M_p$ and $N_2\sqsubseteq M_p$, and because $L$ is a least upper bound, $L\sqsubseteq M_p$.  For any $z\in L$ and $w\in M_p$ such that $z\leq w$, again let $v_1\in N_1$ and $v_2\in N_2$ be both below $z$.  Then $g_1(v_1) \sqsubseteq f_p(w)$ and $g_2(v_2)\sqsubseteq f_p(w)$, and since $h(z)$ is the least upper bound, $h(z)\sqsubseteq f_p(w)$.  Therefore, $(L,h)\sqsubseteq (M_p,f_p)$ and $\Da (M,f)$ is directed.
+
+Finally, we show that $(M,f) = \bigsqcup \Da (M,f)$.  Consider the projections to finite antichains, as described in Corollary \ref{projections}.  Let $(M_n, f_n) = \pi_n(M,f)$.  For a fixed $n$, consider a subset of $RC(D)$,  $\{(M_n, g)\ |\ g(w)\ll f_n(w), \forall w\in M_n\}$.  Each element of the set is way below $(M_n, f_n)$ and since $D$ is a domain, $(M_n, f_n) = \bigsqcup \{(M_n, g)\  |\ g(w)\ll f_n(w), \forall w\in M_n\}$.  Finally, since $(M,f) = \bigsqcup_{n} (M_n,f_n)$, then $(M,f) = \bigsqcup_{n} \bigsqcup \{(M_n, g)\ |\ g(w)\ll f_n(w), \forall w\in M_n\}$.  Thus, $(M,f)$ is the directed supremum of some elements way below itself, so it must be true that $(M,f) = \bigsqcup \Da (M,f)$. 
+\hfill $\blacksquare$
+\end{proof}
+Finally, it can be shown that $RC$ is an endofunctor in the category \textsf{BCD}.
+
+\begin{theorem}
+If $D$ is a bounded complete domain, then so is $RC(D)$.
+\end{theorem}
+\begin{proof}
+Let $\{(M_i,f_i)\}$ be a subset of $RC(D)$ bounded by some $(N,g)$.  Then $M_i\sqsubseteq_{EM} N$ and $f_i\circ \pi_{M_i}(w) \sqsubseteq g(w)$ for each $w$ in $N$, for all $i$.  The set $\{M_i\}$ must have a supremum, $M$, such that $M \sqsubseteq_{EM} N$.  Any $w$ in $M$ must be below some $z$ in $N$.  Then the set $\{f_i \circ \pi_{M_i}(w)\}$ is bounded by $g(z)$, and since $D$ is a bounded complete domain, its supremum exists.  Thus, the candidate for the supremum of $\{(M_i,f_i)\}$ is $(M,f)$, where $f(w) = \bigsqcup_{i} f_i\circ \pi_{M_i}(w)$.  
+
+All that is left to check is that $f$ as defined is continuous in the relative Scott topology of $M$.  Consider a basic open set in $D$, $\Ua d$.  For each $f_i$, $f_i^{-1}(\Ua d)$ is open, of the form $(\bigcup_{w_i}\! \ua w_i) \cap M_i$.  Then $\bigcup_{i} (\bigcup_{w_i}\! \ua w_i) \cap M$ is open in the relative Scott topology of $M$.  If this set is equal to $f^{-1}(\Ua d)$, then $f$ is continuous.  Suppose $z \in\, \ua w_i \cap M$ for some $i$, so that $d \ll f_i\circ \pi_{M_i}(z)$.  Then because $f(z)$ is the supremum of all such elements, $d \ll f(z)$.  If $z$ is in $M$ but not above any such $w_i$, then $f_i\circ \pi_{M_i}(z)$ is not way above $d$ for any $i$.  The set of such elements, $\{f_i\circ \pi_{M_i}(z)\}$, is bounded by $f(z)$, so it can be made directed by adding in the suprema of all pairs of elements.  As the supremum of these elements, $f(z)$ cannot be way above $d$.  Therefore, $f^{-1}(\Ua d) = \bigcup_{i} (\bigcup_{w_i}\! \ua w_i) \cap M$, and $f$ is continuous.
+\hfill $\blacksquare$
+\end{proof}
+
+\section{The RC Monad}
+
+\medskip
+To show that the functor $RC$ forms a monad, the unit and Kleisli extension (or multiplication) of the monad must be exhibited.  For a domain $D$ and $d\in D$, the unit, $\eta:D\rightarrow RC(D)$ is defined by 
+\[\eta(d) = (\epsilon, \chi_d)\]
+where $\epsilon$ is the antichain only containing the empty word, and $\chi_d$ is the constant function whose value is $d$.
+
+\subsection{First attempt at a Kleisli extension}
+
+For any function $h:D\rightarrow RC(E)$, the Kleisli extension lifts the function to another function $h^\dagger:RC(D)\rightarrow RC(E)$.  An element of $RC(D)$ is of the form $(M,f)$ with $f:M->D$.  Composing $h$ with $f$ gives $(M,h\circ f)$, which is an element of $RC(RC(E))$.  In essence, this is a random choice of random choices.  The duty of the Kleisli extension is to flatten this into one random choice, an element of $RC(E)$.
+
+
+
+The Kleisli extension used by Goubault-Larrecq and Varacca for their uniform continuous random variables is defined as follows:
+\[h^\dagger (M,f) = (M^\dagger, f^\dagger)\]
+where
+\[M^\dagger = \bigcup_{w\in M} \bigcup_{w'\in \pi_1\circ h\circ f(w)} w * w'\]
+\[f^\dagger (w*w') = (\pi_2\circ h\circ f(w))(w')\]
+The first component, $M^\dagger$, is an antichain in $FAC(\{0,1\}^\infty)$.  It is composed of all words $w$ in the antichain $M$ concatenated with each word $w'$ of the antichain $\pi_1\circ h\circ f(w)$.  The second component is a function $f^\dagger:M^\dagger\rightarrow E$.  Each word of $M^\dagger$ is of the form $w*w'$. Since $w\in M$ and $h\circ f$ is a function from $M$ to $RC(E)$, the function $\pi_2\circ h \circ f(w)$ sends each $w'$ in $\pi_1\circ h\circ f(w)$ to $E$.   
+
+This Kleisli extension satisfies the monad laws at the object level \cite{mislove2014anatomy}, but it has one major problem:  it is not monotone.  Since we are working in categories of domains with Scott continuous maps, the Kleisli extension must be Scott continuous.  Here is a counterexample showing that $h^\dagger$ is not monotone:
+
+For domains $D$ and $E$, let $h:D\rightarrow RC(E)$ be the constant function that sends everything to $(\{0,1\}, g)$, where $g(0) = e_0$, $g(1) = e_1$, and $e_0$ and $e_1$ are not comparable.  Now consider two elements of $RC(D)$, $(\epsilon, f_1)$ and $(\{0,1\}, f_2)$, where $f_1(\epsilon)$ is below both $f_2(0)$ and $f_2(1)$.  Therefore, ${(\epsilon, f_1) \sqsubseteq (0\cup 1, f_2)}$. 
+
+$h^\dagger (\epsilon, f_1) = (\{0,1\}, g)$, while $h^\dagger (\{0,1\}, f_2) = (\{00, 01, 10, 11\}, g')$ where 
+$g'(00) = g'(10) = e_0$ and $g'(01) = g'(11) = e_1$.
+
+The output of the Kleisli extension can be seen in Figure \ref{CounterexampleTrees}.
+If $h^\dagger$ is monotone, then $(\{0,1\}, g) \sqsubseteq (\{00, 01,10,11\}, g')$.  It is true that $\{0,1\} \sqsubseteq_{EM} \{00,01,10,11\}$. However, since $0\leq 01$, $g(0) = e_0$ should be less than $g'(01) = e_1$, but they are incomparable.  Therefore, $h^\dagger$ is not monotone and this Kleisli extension is not valid in any category that uses Scott continuous functions.
+
+\begin{figure}
+\[
+\begin{xy}
+(0,15)*+{e_0} = "v1";%
+(30,15)*+{e_1} = "v2";%
+(15,0)*{} = "v3";%
+(60,30)*+{e_0} = "v4";%
+(90,30)*+{e_1} = "v5";%
+(100,30)*+{e_0} = "v6";%
+(130,30)*+{e_1} = "v7";%
+(75,15)*{} = "v8";%
+(115,15)*{} = "v9";%
+(95,0)*{} = "v10";%
+{\ar@{-} "v3"; "v1"};%
+{\ar@{-} "v3"; "v2"};%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+\end{xy}
+\]
+\caption[A Counterexample for the First Kleisli Extension]{These two trees are the results of the first Kleisli extension being applied to two comparable trees.  However, these trees are not comparable, so the Kleisli extension is not monotone.} 
+\label{CounterexampleTrees}
+\end{figure}
+
+\subsection{Kleisli Extension of the Monad}\label{notation}
+
+The above Kleisli extension is not monotone for the same reason that concatenation of words is not monotone with respect to the prefix order.  For each word $w$, the extension concatenated $w$ with each word of $\pi_1\circ h\circ f(w)$.  In order to define a Kleisli extension that is monotone, concatenation should not be used.
+
+Consider $h:D\rightarrow RC(E)$. To define the extension $h^\dagger: RC(D)\rightarrow RC(E)$ on $(M, f)$, 
+$h\circ f(w)$ must be considered for each $w\in M$.  In the previous, non-monotone, extension, 
+the entire tree of $\pi_1\circ h\circ f(w)$ factored into the extension.  Instead, our new extension only considers the part of 
+$\pi_1\circ h\circ f(w)$ that is on the same ``branch'' of the tree as $w$, namely $\ua w\; \cup\! \da w$.  
+
+Our new candidate for $h^\dagger$ is defined as follows:
+\[\pi_1\circ h^\dagger(M,f) = \bigcup_{w\in M} \Min(\ua w\ \cap  
+\ua\pi_1 \circ h\circ f(w))\]
+\[((\pi_2\circ h^\dagger)(M,f))(z) = g(\pi_N(z)) \textrm{ where } (N, g) = h\circ f\circ \pi_M(z)\]
+where $\Min(W)$ denotes the minimal words of $W$.
+
+\begin{proposition}
+$h^\dagger$ is monotone.
+\end{proposition}
+\begin{proof}
+$(M, f)\leq (N, g)$ means that $N\subseteq\,\ua M$ (thus, $\ua N\subseteq\,\ua M$)
+and $w\leq z \Rightarrow f(w)\leq g(z)$ for any 
+$w\in M, z\in N$.
+\begin{align*}
+\ua \pi_1\circ h^\dagger(M, f) &= \ua \bigcup_{w\in M} \Min(\ua w\  \cap \ua \pi_1 \circ h\circ f(w)) \\
+&= \bigcup_{w\in M} \ua\Min(\ua w\ \cap \ua \pi_1 \circ h\circ f(w)) \\
+&= \bigcup_{w\in M} (\ua w\ \cap \ua \pi_1 \circ h\circ f(w))
+\end{align*}
+The same applies to $(N, g)$, so we just need to show that
+\begin{align*} 
+\bigcup_{z\in N} (\ua z\ \cap \ua \pi_1 \circ h\circ g(z)) \subseteq \bigcup_{w\in M} (\ua w\ \cap \ua \pi_1 \circ h\circ f(w))
+\end{align*}
+For each $z\in N$, there is a $w\in M$ that is below $z$.  In this case, $\ua z \subseteq\, \ua w$ and 
+\[\ua (\pi_1\circ h\circ g(z))\subseteq\, \ua (\pi_1\circ h\circ f(w))\] since
+$g(z)\geq f(w)$ and $h$ is monotone.  Thus, \[(\ua z\ \cap \ua (\pi_1 \circ h\circ g(z))) \subseteq (\ua w\ \cap \ua (\pi_1 \circ h\circ f(w)))\]
+
+Now we check the functions.  For $w\in(\pi_1\circ h^\dagger(M,f))$ and $z\in(\pi_1\circ h^\dagger(N,g))$ with $w\leq z$,
+we must show that $(\pi_2\circ h^\dagger(M,f))(w) \leq (\pi_2\circ h^\dagger(N,g))(z)$.
+
+Let $\pi_M(w)$ equal the unique word in $M$ below $w$.
+Because $w\leq z$ and $M\sqsubseteq_{EM} N$, ${\pi_M (w) \leq \pi_N (z)}$, and 
+$f\circ \pi_M (w) \leq g\circ \pi_N (z)$.  Since $h$ is monotone,
+$h\circ f\circ \pi_M (w) \leq h\circ g\circ \pi_N (z)$.
+
+Again, $w\leq z$, so $\pi_{\pi_1 \circ h\circ f\circ \pi_M(w)}(w)\leq \pi_{\pi_1 \circ h\circ g\circ \pi_N(z)}(z)$, and we have
+\begin{align*}
+(\pi_2\circ h^\dagger(M,f))(w) 
+&= (\pi_2\circ h\circ f\circ\pi_M(w))(\pi_{\pi_1\circ h\circ f\circ\pi_M(w)}(w)) \\
+& \leq (\pi_2\circ h\circ g\circ\pi_N(z))(\pi_{\pi_1\circ h\circ g\circ\pi_N(z)}(z)) \\ 
+&= (\pi_2\circ h^\dagger(N,g))(z)
+\end{align*} \hfill$\blacksquare$
+%\vspace{-8.5mm}
+\end{proof}
+%\medskip
+
+\begin{theorem}
+$h^{\dagger}$ is Scott continuous.
+\end{theorem}
+\begin{proof}
+It must shown that $h^{\dagger}$ preserves directed suprema.  Let $\{(M_i, f_i)\}$ be a directed family in $RC(D)$.  We begin by considering the first component of $h^\dagger$:
+\begin{align}
+\bigsqcup_i \pi_1 \circ h^{\dagger}(M_i, f_i) 
+&= \bigsqcup_i \bigcup_{w\in M_i} \Min (\ua w\ \cap \ua \pi_1 \circ h\circ f_i(w)) \\
+&= \Min\ \bigcap_i \ua \bigcup_{w\in M_i} \Min (\ua w\ \cap \ua \pi_1 \circ h\circ f_i(w)) \\
+&= \Min\ \bigcap_i \bigcup_{w\in M_i} (\ua w\ \cap \ua \pi_1 \circ h\circ f_i(w)) \\
+&= \Min \bigcup_{w\in \sqcup_i M_i} \bigcap_i \ua w\ \cap \ua \pi_1 \circ h\circ f_i\circ \pi_{M_i}(w)) \\
+&= \Min \bigcup_{w\in \sqcup_i M_i} \ua w\ \cap\ \bigcap_i \ua \pi_1 \circ h\circ f_i\circ \pi_{M_i}(w)) \\
+&= \Min \bigcup_{w\in \sqcup_i M_i} \ua w\ \cap \ua \Min\ \bigcap_i \ua \pi_1 \circ h\circ f_i\circ \pi_{M_i}(w)) \\
+&= \Min \bigcup_{w\in \sqcup_i M_i} \ua w\ \cap \ua \bigsqcup_i \pi_1 \circ h\circ f_i\circ \pi_{M_i}(w)) \\
+&= \bigcup_{w\in \sqcup_i M_i} \Min \ua w\ \cap \ua \pi_1 \circ h\circ \bigsqcup_i f_i\circ \pi_{M_i}(w))\nonumber \\
+&= \bigcup_{w\in \sqcup_i M_i} \Min \ua w\ \cap \ua \pi_1 \circ h\circ (\bigsqcup_i f_i)(w)) \nonumber\\
+&= \pi_1 \circ h^{\dagger}(\bigsqcup_i M_i, \bigsqcup_i f_i) \nonumber
+\end{align}
+The equations (2.1)=(2.2) and (2.6)=(2.7) stem from Fact \ref{antichainsup}.  Equations (2.2)=(2.3) and (2.5)=(2.6) hold since for an upper set with minimal elements, taking the upper set of those minimal elements results in the original upper set (there are no infinitely decreasing chains, so every element is above a minimal element).  
+
+Finally, for the equality (2.3)=(2.4), first note that the unions are all disjoint.  The equality holds even without taking the minimal elements of both sides.  If $z\in \bigcap_i \bigcup_{w\in M_i} (\ua\!w\ \cap \ua\!\pi_1 \circ h\circ f_i(w))$, then $z$ is above some $w_i$ for every $M_i$, and therefore, it is above some $v\in \sqcup_i M_i$.  It is also above $\pi_1 \circ h\circ f_i(w_i) = \pi_1 \circ h\circ f_i\circ \pi_{M_i}(v)$ for every $M_i$.  Thus, $z \in \bigcup_{w\in \sqcup_i M_i} \bigcap_i \ua w\ \cap \ua \pi_1 \circ h\circ f_i\circ \pi_{M_i}(w))$.  Conversely, if $z$ is in (2.4), then it is above some $v\in \sqcup_i M_i$ and it is above $\pi_1 \circ h\circ f_i\circ \pi_{M_i}(v)$ for all $M_i$.  Each $M_i$ has a $w_i \leq v$, so $z$ is above each $w_i$.  Again, $\pi_1 \circ h\circ f_i\circ \pi_{M_i}(v) = \pi_1 \circ h\circ f_i(w_i)$, so $z$ is above each of these, placing it in (2.3).
+
+Now we check the second component of $h^\dagger$:
+\begin{align*}
+\bigsqcup_i (\pi_2\circ h^{\dagger}(M_i,f_i))(w) 
+&= \bigsqcup_i (\pi_2\circ h\circ f_i\circ \pi_{M_i}(w))(\pi_{\pi_1\circ h\circ f_i \circ \pi_{M_i}}(w)) \\
+&=  \pi_2\circ h\circ \bigsqcup_i f_i\circ \pi_{M_i}(w))(\pi_{\pi_1\circ h\circ f_i \circ \pi_{M_i}}(w)) \\
+&= (\pi_2\circ h^{\dagger}(\sqcup_i M_i, \sqcup_i f_i))(w)
+\end{align*}
+\hfill $\blacksquare$
+\end{proof}
+
+As can be seen in the above proof, the notation can get cumbersome due to the many projections.  Here we introduce a more concise notation, based on the fact that any continuous function $f:M\rightarrow D$ can easily be extended to the upper set of $M$ by $f\circ \pi_M:\ua M -> D$.
+
+\paragraph{Notation}
+For $f\!:\!M\rightarrow D$ and $h\!:\!D\rightarrow RC(E)$, 
+define the function $h_1^f\!:\!\ua\!M\rightarrow FAC(\{0,1\}^\infty)$
+by $h_1^f(w) = \pi_1\circ h\circ f(\pi_M(w))$, and 
+define $h_2^f(w) = \pi_2\circ h\circ f(\pi_M(w))$.  Furthermore, for any $z$ in 
+$\ua(h_1^f(w))$, let $(h_2^f(w))(z) = (h_2^f(w))(\pi_{(h_1^f(w))}(z))$.
+
+Note that if $w\geq w'$, then $h_1^f(w)=h_1^f(w')$ and $h_2^f(w) = h_2^f(w')$.  Also, if $z\geq z'$, 
+then $(h_2^f(w))(z) = (h_2^f(w))(z')$.
+
+\paragraph{Definition of $h^\dagger$ with notation}
+
+\[\pi_1\circ h^\dagger(M,f) = \bigcup_{w\in M} \Min(\ua w\ \cap 
+\ua(h^f_1(w)))\]
+
+\[((\pi_2\circ h^\dagger)(M,f))(z) = (h_2^f(z))(z)\]
+This lemma will be useful in proving that the monad laws hold.
+\begin{lemma}
+If $A$ is an upper set in $\{0,1\}^\infty$, then $\ua\ $\emph{Min}$(A) = A$.
+\end{lemma}
+\begin{proof}
+$\Min(A) \subseteq A$, and since $A$ is an upper set, $\ua\Min(A) \subseteq A$.  Conversely, there are no infinite descending chains in $\{0,1\}^\infty$, so every word in $A$ is above some minimal element of $A$.  Thus, $A\subseteq\, \ua\Min(A)$.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{theorem}
+The functor $RC$ forms a monad.
+\end{theorem}
+\begin{proof} 
+Now the three monad laws are shown to hold.
+\begin{description}
+\item[{[}$\boldsymbol{h^\dagger\circ \eta = h}${]}] \hfill \\
+\[
+\xymatrix{
+D\ar[r]^\eta\ar[dr]_h & RV(D)\ar[d]^{h^\dagger} \\
+& RV(E)
+}
+\]
+\begin{align*}
+\pi_1\circ h^\dagger\circ\eta(d) &= \pi_1\circ h^\dagger(\delta_{\epsilon}, \chi_d)) \\
+&=\Min(\ua\epsilon\ \cap\ua(h_1^{\chi_d}(\epsilon))) \\
+&= \Min(\ua(h_1^{\chi_d}(\epsilon))) \\
+&= h_1^{\chi_d}(\epsilon) \\
+&= \pi_1\circ h \circ \chi_d(\epsilon) \\
+&= \pi_1\circ h(d)
+\end{align*}
+\begin{align*}
+(\pi_2\circ h^\dagger\circ\eta (d))(z) &= (\pi_2\circ h^\dagger(\delta_\epsilon, \chi_d))(z) \\
+&= (h_2^{\chi_d}(z))(z) \\
+&= (\pi_2\circ h \circ \chi_d(z))(z) \\
+&= (\pi_2\circ h(d))(z).
+\end{align*}
+\newpage
+\item[{[}$\boldsymbol{\eta^\dagger = \mathrm{id}}${]}] \hfill \\
+\begin{align*}
+\pi_1\circ\eta^\dagger(M,f) &= \bigcup_{w\in M} \Min(\ua w\ \cap \ua(\eta_1^f(w))) \\
+&= \bigcup_{w\in M} \Min(\ua w\ \cap \ua \epsilon) \\
+&= \bigcup_{w\in M}\Min(\ua w) \\
+&= \bigcup_{w\in M} w \\
+&= M
+\end{align*}
+\begin{align*}
+(\pi_2\circ \eta^\dagger)(M, f)(z) &= \eta_2^f(z)(z) \\
+&= \chi_{f(z)}(z) \\
+&= f(z)
+\end{align*}
+\item[{[}$\boldsymbol{k^\dagger\circ h^\dagger = (h^\dagger\circ h)^\dagger}${]}] \hfill \\
+For any function $h:D\rightarrow RC(E)$ and $(M,f)\in RC(D)$, the first component of the Kleisli extension, $h^\dagger (M,f)$, will be an antichain at least as big as $M$.  For any $w\in M$, the amount that the Kleisli extension grows above $w$ is determined solely by $h_1^f(w)$. To show that the equality, $k^\dagger\circ h^\dagger = (h^\dagger\circ h)^\dagger$, holds for the antichains, we can show that the antichains are equal above any arbitrary $w$ in $M$.
+
+Let $w$ be any word in $M$.
+\begin{align*}
+\ua w\cap (\pi_1\circ k^\dagger\circ h^\dagger (M,f)) 
+&= \hspace{-16pt}\bigcup_{z\in\Min(\ua w\ \cap\ \ua(h_1^f(w)))}\hspace{-16pt}\Min(\ua z\ \cap\ua(k_1^{h_2^f(z)}(z)))
+\end{align*}
+\begin{align*}
+\ua w\cap (\pi_1\circ (k^\dagger\circ h)^\dagger (M,f))
+&= \Min(\ua w\ \cap\ua(\pi_1\circ k^\dagger\circ h\circ f(w))) \\
+&= \Min(\ua w\ \cap\ua\hspace{-8pt}\bigcup_{z\in h_1^f(w)}\hspace{-8pt}\Min(\ua z\ \cap\ua(k_1^{h_2^f(w)}(z)))) \\
+&= \Min(\ua w\cap\hspace{-8pt}\bigcup_{z\in h_1^f(w)}\hspace{-8pt}\ua\Min(\ua z\ \cap\ua(k_1^{h_2^f(w)}(z)))) \\
+&= \Min(\ua w\cap\hspace{-8pt}\bigcup_{z\in h_1^f(w)}\hspace{-8pt}(\ua z\ \cap\ua(k_1^{h_2^f(w)}(z)))) \\
+&= \Min(\hspace{-8pt}\bigcup_{z\in h_1^f(w)}\hspace{-8pt}(\ua w\ \cap\ua z\ \cap\ua(k_1^{h_2^f(w)}(z))))
+\end{align*}
+
+Now suppose $w$ is not in $\da h_1^f(w)$. Then, for $k^\dagger\circ h^\dagger$, the only $z$ to consider is $w$.  Thus:
+\begin{align*}
+\ua w\cap (\pi_1\circ k^\dagger\circ h^\dagger (M,f)) 
+&= \Min(\ua w\ \cap\ua(k_1^{h_2^f(w)}(w)))
+\end{align*}
+
+For $(k^\dagger\circ h)^\dagger$, in $\bigcup_{z\in (h_1^f(w))}$, we only need to consider 
+$z\in h_1^f(w)\; \cap\! \da w$, which only contains $\pi_{h_1^f(w)}(w)$.  This $z$ is smaller
+than $w$, so $\ua w\ \cap \ua z =\, \ua w$. Also, $
+k_1^{h_2^f(w)}(z) = k_1^{h_2^f(w)}(w)$.  Thus we get:
+\begin{align*}
+\ua w\cap (\pi_1\circ (k^\dagger\circ h)^\dagger (M,f))
+= \Min(\ua w\ \cap\ua(k_1^{h_2^f(w)}(w)))
+\end{align*}
+
+Now suppose $w$ is in $\da h_1^f(w)$. Then, for $k^\dagger\circ h^\dagger$, we have to consider $z$ in $\ua w\cap h_1^f(w)$.  Thus:
+\begin{align*}
+\ua w\cap (\pi_1\circ k^\dagger\circ h^\dagger (M,f)) 
+&= \bigcup_{z\in \ua w\,\cap\,(h_1^f(w))}\Min(\ua z\ \cap\ua(k_1^{h_2^f(z)}(z)))
+\end{align*}
+
+For $(k^\dagger\circ h)^\dagger$, in $\bigcup_{z\in h_1^f(w)}$, we only need to consider 
+$z\in h_1^f(w)\; \cap\! \ua w$.  Since each $z$ is above $w$, $\ua z\ \cap \ua w =\, \ua z$.  Thus we get:
+\begin{align*}
+\ua w\cap (\pi_1\circ (k^\dagger\circ h)^\dagger (M,f))
+&=\Min(\bigcup_{z\in \ua w\,\cap\,(h_1^f(w))}(\ua z\ \cap\ua(k_1^{h_2^f(w)}(z)))) \\
+&= \bigcup_{z\in \ua w\,\cap\,(h_1^f(w))}\Min(\ua z\ \cap\ua(k_1^{h_2^f(z)}(z)))
+\end{align*}
+
+Finally, we have to check the functions.
+\begin{align*}
+(\pi_2\circ k^\dagger\circ h^\dagger(M,f))(z) &= (k_2^{h_2^f(z)}(z))(z)
+\end{align*}
+\begin{align*}
+(\pi_2\circ (k^\dagger\circ h)^\dagger(M,f))(z) &= ((k^\dagger\circ h)_2^f(z))(z) \\
+&= (\pi_2\circ k^\dagger\circ h\circ f(\pi_M(z)))(z) \\
+&= (\pi_2\circ k^\dagger(h_1^f(z),h_2^f(z)))(z) \\
+&= (k_2^{h_2^f(z)}(z))(z)
+\end{align*}
+\end{description} \hfill $\blacksquare$
+\end{proof}
+
+Here, we created a monad by defining both the unit and Kleisli extension.  Another characterization of a monad involves the multiplication of the monad, which is a natural transformation $\mu:RC^2 \to RC$.  Given the Kleisli extension and the identity function $\textsf{id}:RC(D)\to RC(D)$, the multiplication is simply the Kleisli extension of the identity function.
+
+Let $(M,f)$ be in $RC^2(D)$. Then $f$ is a function from $M$ to $RC(D)$.  We can write $f$ as $(f_1, f_2)$, where for a $w$ in $M$, $f_1$ gives a full antichain, and $f_2$ gives a function from that antichain to $D$.  Now the multiplication is defined as:
+\[\mu(M,f) = (\bigcup_{w\in M} \Min(\ua w\ \cap \ua f_1(w)), w\mapsto (f_2(w))(w))\]
+where $f_2$ and $f_2(w)$ may have to be extended upward to be well defined.
+
+\input{kleisli}
+

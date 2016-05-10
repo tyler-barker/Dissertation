@@ -1,0 +1,596 @@
+%\chapter{Introduction}
+
+
+\section{Introduction}
+
+Starting with Dana Scott's model of the untyped lambda calculus, domain theory has been largely successful in providing models of computation.  Domain theory lends itself to programming language semantics due to its wealth of Cartesian closed categories that can be used as semantic models.  The use of domain theory has expanded to provide denotational semantics for many computational effects, such as continuation and nondeterminism, using Moggi's \cite{moggi1991notions} monadic approach. One type of computation that has been problematic to model, however, is probabilistic computation.  The most well known monad of probabilistic computation is the probabilistic powerdomain, first defined by Saheb-Djahromi in 1980 \cite{saheb1980cpo}.  However, this monad has two major flaws \cite{jung1998troublesome}.  First, it is not known whether any Cartesian closed category of domains is closed under the probabilistic powerdomain.  There has been no real progress on this frustrating question in the more than 35 years since Saheb-Djahromi's initial work.  The category of coherent domains is closed under this construction, but it is not Cartesian closed.  Second, there is no distributive law between the probabilistic powerdomain and any of the three nondeterministic powerdomains \cite{varacca2003probability}.  According to Beck's Theorem \cite{beck1969distributive}, the composition of two monads is a monad if and only if the monads satisfy a distributive law.  Thus, to generate a monad from the probabilistic powerdomain and any of the monads for nondeterministic choice, new laws must be added, an approach explored independently by Tix \cite{tix1999continuous, tix2009semantic} and Mislove \cite{mislove2000nondeterminism}.  
+
+To address these flaws, work has been done to develop alternate models of probabilistic computation.  Varacca and Winskel \cite{varacca2003probability,varacca2006distributing} constructed what they called \textit{indexed valuation monads}.  These monads leave various Cartesian closed categories of domains invariant, at the expense of abandoning the laws of the probability monad.  Indexed valuations weaken the laws of probabilistic choice, no longer requiring that $p +_r p = p$, where $p +_r q$ denotes choosing $p$ with probability $r$ and $q$ with probability $1-r$.  In this setting, it is possible to satisfy a distributive law with the nondeterministic powerdomains.
+
+Mislove \cite{mislove2007discrete} built upon this work, using an indexed valuation model to define a monad of finite random variables.  The Cartesian closed categories \textsf{RB} and \textsf{FS} were shown to be closed under this construction.  Later, Goubault-Larrecq and Varacca \cite{GLV-lics2011} proposed a model of continuous random variables over the Cartesian closed category \textsf{BCD}, but the model did not form a monad in this category \cite{mislove2013anatomy}.  The models that this thesis describes are based upon these continuous random variables, in particular, the uniform continuous random variables.  
+
+This thesis presents new domain-theoretic models for randomized algorithms.  Given some source of randomness (an oracle), a randomized algorithm can use random bits from the oracle to control its computation.  The possible random bits form a binary tree, where each random choice of a bit is represented by a branching of the tree.  The randomized algorithm then determines what the output should be for each branch.  This idea forms the basis of our random choice functors.  However, the functor only provides one half of the model.  We must also show how multiple randomized algorithms can be combined or composed.  This is where the monadic structure comes into play.  If we wish to join multiple randomized algorithms to form one resulting algorithm, then we can run each algorithm in parallel, using the same random bits for each.
+
+Monads are used to add a computational effect to an existing semantic model.  In order to work with models of the lambda calculus, it is important to work in a Cartesian closed category of domains, due to Lambek's theorem \cite{lambek1980lambda}.  Lambek showed that there is a one-to-one correspondence between models of the typed lambda calculus and Cartesian closed categories.  Scott's corollary \cite{scott1980relating} states that models of the untyped lambda calculus all arise as reflexive objects in Cartesian closed categories.  The first random choice monad presented in this thesis is shown to be an endofunctor of the Cartesian closed category \textsf{BCD}.  It was a subcategory of \textsf{BCD} that Scott used in his first model of the untyped lambda calculus.  
+
+If we wish to add multiple computational effects, then we can compose monads.  However, this composition forms a monad only if the monads enjoy a distributive law.  It is shown that in the category \textsf{BCD}, our first random choice monad enjoys a distributive law with the lower powerdomain for nondeterminism.
+A second random choice monad, which differs slightly from the first, is then presented as an endofunctor in the categories \textsf{RB} and \textsf{FS}.  In these categories, we display a distributive law with this monad and the convex powerdomain for nondeterminism.  Finally, a third random choice monad is given that enjoys a distributive law with the upper powerdomain in the category \textsf{BCD}.
+
+We use the random choice monads to develop a new programming language, Randomized PCF.  This extends the language PCF by adding in random choice, allowing for the programming of randomized algorithms.  PCF is the toy language that Scott used to illustrate how his model of the lambda calculus could be applied to model programming languages; it is a focus of study for semantics.  A full operational semantics is given for Randomized PCF, and a random choice monad is used to give it a mathematical model (denotational semantics).
+
+The final chapter of the thesis describes how the random choice monads can be implemented in functional programming languages.  Versions of the monads are given in the programming languages Haskell and Scala, and a formal proof of the monad laws is given using the interactive theorem prover Isabelle.  Finally, an implementation of Randomized PCF is developed.  The grammar for the syntax is designed, and a parser and interpreter are written in SML.  As a proof of concept, a program implementing the Miller-Rabin algorithm in Randomized PCF is displayed.
+
+\subsubsection{Structure of the Thesis}
+
+Chapter 1 contains the relevant background information needed for the rest of the thesis.  Chapter 2 defines the first random choice functor and proves that it satisfies the monad laws when viewed as an endofunctor of the category \textsf{BCD}.  Motivation is given for the functor and the Kleisli extension of the monad.  Chapter 3 first gives a distributive law between the random choice monad and the lower powerdomain.  Then, variations of the monad are defined, along with distributive laws with the convex and upper powerdomains.  Chapter 4 gives an operational and denotational semantics for Randomized PCF, along with proofs that the semantics coincide.  Chapter 5 discusses how the random choice monads can be implemented in functional programming.  Monad definitions are given in Haskell and Scala, and a formal proof of the monad laws is given in Isabelle.  Finally, an implementation of Randomized PCF is given, along with some example programs written in the language.
+
+\section{Background}
+
+\subsection{Lambda Calculus} \label{lambdacalculus}
+
+The lambda calculus was invented by Alonzo Church around 1928, and first published in 1932 \cite{church1932set}.  A more extensive history of the lambda calculus can be found in \cite{cardone2006history}.  A comprehensive treatise on the lambda calculus was written by Barendregt \cite{barendregt1984lambda}.
+
+The terms of the lambda calculus are given by the following Backus-Naur Form (BNF):
+\begin{table}[h]
+\centering
+\texttt{
+\begin{tabular}{rl}
+\\
+$M,N$ ::= &  $x$ | $(MN)$ | $(\lambda x.M)$
+\end{tabular}} 
+\end{table}
+
+The lambda calculus is built from an infinite set of variables along with function abstraction and application.  If $x$ is a variable, then $x$ is a term of the lambda calculus.  If $M$ and $N$ are both terms, then so is $MN$ (application).  Finally, if $M$ is a term and $x$ is a variable, then $\lambda x.M$ is a term (function abstraction).  This is called the untyped lambda calculus, since all terms are at the same level.  This means that each term is a function taking other terms as input, as well as an argument for any other terms as a function.
+\begin{example}
+The term $\lambda x.x$ is the identity function.  Given any $x$, it outputs $x$.
+\end{example}
+The lambda abstraction $\lambda x.M$ \emph{bounds} the variable $x$.  Variables not bound are said to be \emph{free}.
+\begin{definition}
+The set of free variables of a term $M$, $\textrm{FV}(M)$, is defined inductively:
+\begin{align*}
+\textrm{FV}(x) &= x \\
+\textrm{FV}(MN) &= \textrm{FV}(M)\cup \textrm{FV}(N) \\
+\textrm{FV}(\lambda x.M) &= \textrm{FV}(M) - \{x\}
+\end{align*}
+\end{definition}
+A term is closed if it has no free variables.  An important aspect of the lambda calculus is the notion of substituting some term $N$ for all free occurrences of a variable $x$ in another term $M$.  This is denoted $M[N/x]$ here, and is defined as follows:
+\begin{align*}
+x[N/x] &= N \\
+y[N/x] &= y, \text{if } x\neq y \\
+(M_{1}M_{2})[N/x] &= (M_{1}[N/x])(M_{2}[N/x]) \\
+(\lambda y.M)[N/x] &= \lambda y.(M[N/x])
+\end{align*}
+There are two concerns that one should have when performing a substitution.  First, as stated, only free occurrences of a variable should be replaced.  For example, $x(\lambda xy.x)[N/x]$ does not equal $N(\lambda xy.N)$.  The $x$ in the lambda term is bound, so it should not get replaced.  Instead, $x(\lambda xy.x)[N/x] = N(\lambda xy.x)$. 
+
+The second concern of substitution is avoiding the capture of free variables by ones that are bound.  For example, let $N\equiv \lambda z.xz$.  Now consider $(\lambda x.yx)[N/y]$.  Note that $x$ is bound in $\lambda x.yx$ but free in $N$.  If we perform the substitution, we get $\lambda x.(\lambda z.xz)x$.  Here the free $x$ in $N$ gets captured.  This mistakenly treats the $x$ in both terms as the same variable.  To get around this, we should rename the bound variable before performing the substitution.  We can change $\lambda x.yx$ to $\lambda w.yw$.  Then the substitution results in $\lambda w.(\lambda z.xz)w$.
+
+As a theory, terms of the lambda calculus are distinct unless they are identical.  We now add some conversion rules that allow terms to be identified - this process of applying the rules is called reduction.  Terms of the lambda calculus can be converted and reduced in three main ways:  $\alpha$-equivalence, $\beta$-reduction, and $\eta$-conversion.
+
+First, \emph{$\alpha$-equivalence} allows for the renaming of bound variables.  For example, $\lambda x.x$ is equivalent to $\lambda y.y$.  The rule for $\alpha$-equivalence can be stated by:
+\[\lambda x.M \equiv_\alpha \lambda y.(M[y/x])\]
+This was used above in avoiding the capture of free variables by substitution.  Care must be taken to ensure that the new variable name is not captured by some other abstraction.  For example, in the term $\lambda x.\lambda y.x$, $x$ could not be renamed to $y$.  Having infinitely many variables means there is always a ``fresh'' variable to use.
+
+Second, \emph{$\beta$-reduction} is how a function gets applied to its arguments.  This is shown in the following rule:
+\begin{displaymath}
+(\lambda x.M)N ->_{\beta} M[N/x]
+\end{displaymath}
+For example, $(\lambda x.x)y ->_{\beta} x[y/x] = y$, which shows that $\lambda x.x$ is indeed the identity function.
+
+Finally, \emph{$\eta$-conversion} says that a function can be fully defined by what it outputs for all possible arguments.
+\begin{displaymath}
+\lambda x.(f x) \equiv_{\eta} f, x\notin \textrm{FV}(f)
+\end{displaymath}
+
+In the untyped lambda calculus, the reduction of a term does not necessarily terminate.  An example is the term $(\lambda x.xx)(\lambda x.xx)$.  Using $\beta$-reduction, $(\lambda x.xx)(\lambda x.xx) ->_{\beta} xx[(\lambda x.xx)/x] = (x[(\lambda x.xx)/x])(x[(\lambda x.xx)/x]) = (\lambda x.xx)(\lambda x.xx)$.
+
+\subsubsection{Simply Typed Lambda Calculus}
+
+Types can be added to the lambda calculus to form a simply typed lambda calculus.  We assume that there is some set of ground types.  If $\iota$ is a ground type, we give the set of simple types in the following BNF:
+
+\begin{table}[h]
+\centering
+\texttt{
+\begin{tabular}{rl}
+$s,t$ ::= &  $\iota$ | $s -> t$ | $s \times t$ | $()$
+\end{tabular}} 
+\end{table}
+The type $s -> t$ is the type of functions from $s$ to $t$, and $s \times t$ is the type of pairs $(x,y)$, where $x$ is of type $s$ and $y$ is of type $t$.  The type $()$ is the unit type, which has only one element, $*$.
+
+The terms of the simply typed lambda calculus are now given by the following BNF:
+
+\begin{table}[h]
+\centering
+\texttt{
+\begin{tabular}{rl}
+$M,N$ ::= &  $x$ | $(MN)$ | $(\lambda x.M)$ | $(M,N)$ | $\pi_1(M)$ | $\pi_2(M)$ | $*$
+\end{tabular}} 
+\end{table}
+
+$(M,N)$ is a pair of terms, and $\pi_1$ and $\pi_2$ project a pair to each of its components.  Thus, $\pi_1(M,N) = M$ and $\pi_2(M,N) = N$.  Now that each term has a type, there are limitations to how terms can be form and combined.  The typing rules are displayed in Table \ref{simplytypes}.  The notation $M:t$ means that $M$ is of type $t$.  Here, $H$ is a type assignment, which is a list of variables and their types.  The statement $H |- M:t$ means that under type assignment $H$, the term $M$ has type $t$.
+
+\begin{table} 
+\begin{center}
+\begin{tabulary}{0.7\textwidth}{C>{$}C<{$}} 
+
+{[}Var{]} & H,x:t |- x:t \\ \noalign{\smallskip}
+{[}App{]} & \inference{H |- M : s -> t & H |- N : s}{H |- M(N) : t} \\ \noalign{\medskip}
+{[}Lambda{]} & \inference{H,x:s |- M:t}{H |- \lambda x.M:s->t} \\
+\noalign{\medskip}
+{[}Pair{]} & \inference{H |- M:s & H |- N:t}{H |- (M,N):s\times t}
+\\ \noalign{\medskip}
+{[}$\pi_1${]} & \inference{H |- M:s\times t}{H |- \pi_1(M):s}
+\\ \noalign{\medskip}
+{[}$\pi_2${]} & \inference{H |- M:s\times t}{H |- \pi_2(M):t}
+\\ \noalign{\medskip}
+{[}$*${]} & H |- *:() \\
+
+\end{tabulary}
+\caption{Typing Rules for the Simply Typed Lambda Calculus} \label{simplytypes}
+\end{center}
+\end{table}
+
+\subsection{Domain Theory}
+
+The lambda calculus just described is a theory - to be meaningful, it also needs a model.  It was not until the late 1960s that the first model of the untyped lambda calculus was found.  It was the work of Dana Scott \cite{scott1972continuous} and the model he devised that founded the area of domain theory.
+
+Domain theory is a branch of mathematics used in specifying a \emph{denotational semantics} for a programming language.  This involves constructing mathematical objects that can describe the meaning of a programming language's expressions.  For a more thorough introduction to domain theory, consult \cite{gierz2003continuous, abramsky1994domain}. 
+
+Domain theory involves working with partially ordered sets, or \emph{posets}.  
+
+\begin{definition}
+A \emph{poset} is a set $P$ with a binary relation, $\sqsubseteq$, such that for all $x,y,z\in P$:
+\begin{enumerate}
+\item {[}Reflexivity{]} $x\sqsubseteq x$
+\item {[}Transitivity{]} $x\sqsubseteq y \wedge y\sqsubseteq z \Rightarrow x\sqsubseteq z$
+\item {[}Antisymmetry{]} $x\sqsubseteq y \wedge y\sqsubseteq x \Rightarrow x = y$
+\end{enumerate}
+\end{definition}
+
+\begin{example}
+Any total order, such as real numbers with the usual ordering, forms a poset.
+\end{example}
+\begin{example}
+A family of sets ordered by inclusion ($M \sqsubseteq N \Leftrightarrow M\subseteq N$) form a poset.
+\end{example}
+%A subset of a poset is an \emph{antichain} is no two distinct %elements of the poset are comparable.
+
+When considering functions between posets, it is usually desired that the functions preserve the partial order.  Such functions are called monotone.
+\begin{definition}
+For two posets, $P$ and $Q$, the function, $f:P->Q$ is \emph{monotone} if for all $x,y$ in $P$, $x\sqsubseteq y$ implies $f(x)\sqsubseteq f(y)$ in $Q$.
+\end{definition}
+
+\begin{proposition}
+The set of monotone functions between two posets, $P$ and $Q$, forms another poset in the pointwise order: $f \sqsubseteq g$ if for all $x \in P$, $f(x) \sqsubseteq g(x)$ in $Q$.
+\end{proposition}
+
+It is often useful to think of elements of a poset as possible stages of a computation.  As a program is being executed, each stage of computation moves up in the order, getting closer and closer to the desired output, which may be the least upper bound, or supremum, of the partial computations.  However, there may be multiple ways to get to the same desired output, and elements of distinct paths may not compare.  An example given in \cite{goubault2013non} is of a computer solving a crossword puzzle.  At first, the puzzle is empty, and this stage of computation is the bottom element.  A complete puzzle represents the top element, but there are many ways to move from the bottom to the top.  We can order the partially completed puzzles by $x\sqsubseteq y$ if any word completed in $x$ is also completed in $y$.  Two elements $x$ and $y$ may not compare, but we can always find an element above both of them by filling in all words completed in either $x$ or $y$.  This motivates the following definition:
+
+\begin{definition}
+A nonempty subset, $D$, of a poset $P$ is \emph{directed} if for any two elements in $D$, $x$ and $y$, there is an upper bound $z$ also in $D$ ($x\sqsubseteq z$ and $y\sqsubseteq z$).
+\end{definition}
+
+\begin{example}
+Any chain (a subset in which any pair of elements is comparable) is directed.  For any pair, the larger of the two is an upper bound.
+\end{example}
+
+\begin{definition}
+A poset in which every directed subset $D$ has a least upper bound (denoted $\bigsqcup D$) is called a \emph{directed-complete partial order}, or \emph{dcpo} for short.
+\end{definition}
+
+\begin{example}
+Any finite poset is a dcpo.  A closed interval of real numbers (with the usual ordering) is a dcpo.  However, the natural numbers with their usual order do not form a dcpo.  The natural numbers themselves form a directed family with no (least) upper bound.  
+\end{example}
+
+When considering functions between two dcpos, it is usually desired that monotone functions also preserved directed suprema (least upper bounds).
+
+\begin{definition}
+For two dcpos $P$ and $Q$, a monotone function, $f:P->Q$ is \emph{Scott continuous} if for any directed family $D\subseteq P$, $f(\bigsqcup D) = \bigsqcup f(D)$
+\end{definition}
+
+The set of Scott continuous functions between two dcpos $P$ and $Q$, denoted $[P->Q]$, also forms a dcpo using the same pointwise order described above for monotone functions.  The proof is a simple exercise.
+
+The following is the least fixed-point theorem for Scott continuous functions (sometimes called the Kleene fixed-point theorem).  This theorem is crucial in denotational semantics to give meaning to recursive functions in programming languages, as is discussed in Section \ref{motiv}.  
+
+\begin{theorem}
+Let $D$ be a dcpo with a least element $\bot$.  Then every Scott continuous self-map $f:D\rightarrow D$ has a least fixed-point.  
+It is given by $\bigsqcup_{n\in\Nat} f^n(\bot)$.
+\end{theorem}
+\begin{proof}
+Consider the set $\{f^{n}(\bot)\ |\ n\in \mathbb{N}\}$.  This forms a chain.  $\bot \sqsubseteq f(\bot)$, so by monotonicity of $f$, $f(\bot)\sqsubseteq f^{2}(\bot)$ and so on for each $f^{n}(\bot)$. Since $D$ is a dcpo, this chain (and thus, directed subset) has a supremum, $\bigsqcup_{n\in \mathbb{N}}f^{n}(\bot)$, and since $f$ is Scott continuous, \[f (\bigsqcup_{n\in \mathbb{N}}f^{n}(\bot)) = \bigsqcup_{n\in \mathbb{N}}f^{n+1}(\bot) = \bigsqcup_{n\in \mathbb{N}}f^{n}(\bot)\] so $\bigsqcup_{n\in \mathbb{N}}f^{n}(\bot)$ is a fixed point of $f$.
+
+To show this is the least fixed point, assume there is another fixed point $x$.  Clearly, $\bot \sqsubseteq x$, and by monotonicity of $f$, $f(\bot) \sqsubseteq f(x) = x$.  Repeatedly applying $f$ gives that $f^{n}(\bot) \sqsubseteq x$ for all $n$.  Thus, $x$ is an upper bound for $\{f^{n}(\bot)\ |\ n\in \mathbb{N}\}$, and since $\sqcup_{n\in \mathbb{N}}f^{n}(\bot)$ is the least upper bound, it must be below $x$.  \hfill$\blacksquare$
+\end{proof} 
+
+It was explained above how a total computation can be viewed as a directed supremum of partial computations. However, it may not be possible to complete the total computation, like calculating the entire decimal expansion of a real number.  In this case, we would like to approximate the total computation with a much simpler partial computation that we can compute.  Then we would like the total computation to be the supremum of these simpler approximations.  This notion is made precise below.
+
+\begin{definition}
+If $D$ is a dcpo and $x,y\in D$, then $x$ \emph{approximates} $y$ (denoted $x \ll y$) iff for every directed set $S$ with $y\sqsubseteq \bigsqcup S$, there is some $s\in S$ such that $x\sqsubseteq s$.  We also say that $x$ is way below $y$ if $x\ll y$.  We denote $\Da y = \{x\in D | x \ll y\}$, and similarly, $\Ua x=\{y\in D | x\ll y\}$.  
+\end{definition}
+
+\begin{definition}
+An element $x$ of a dcpo $D$ is \emph{compact} (or \emph{finite}) if it approximates itself ($x\ll x$).  The set of compact elements of $D$ is denoted $\mathsf{K}(D)$.
+\end{definition}
+
+\begin{proposition}
+Let $w,x,y,z$ be elements of a dcpo $D$.
+\begin{enumerate}
+\item $x\ll y \Rightarrow x\sqsubseteq y$
+\item $w\sqsubseteq x \ll y \sqsubseteq z \Rightarrow w\ll z$
+\end{enumerate}
+\end{proposition}
+
+\begin{definition}
+A dcpo $D$ is a \emph{domain} if for all $d$ in $D$, $\Da d$ is directed and $\bigsqcup \Da d = d$.
+\end{definition}
+
+\begin{example}
+Figure \ref{nondomain} displays an example of a dcpo that is not a domain.  There are two infinite chains, $\{a_i\}$ and $\{b_j\}$, each with supremum $\top$, but no $a_i$ and $b_j$ are comparable.  Note that for any $i$, $a_i$ is not way below $\top$ because $\{b_j\}$ is a directed family whose supremum is $\top$, but no element $b_j$ is above $a_i$.  Similarly, for any $j$, $b_j$ is not way below $\top$.  Thus, the set of elements way below $\top$ is empty, and therefore, not directed.  
+
+\begin{figure}
+\[
+\begin{xy}
+(0,0)*{\bullet} = "v0" + (-4,0)*{a_0};
+(8,8)*{\bullet} = "v1" + (-4,0)*{a_1};%
+(16,16)*{\bullet} = "v2" + (-4,0)*{a_2};%
+(22,22)*{} = "v7";%
+(30,30)*{\bullet} = "v3" + (0,4)*{\top};%
+(38,22)*{} = "v8";%
+(44,16)*{\bullet} = "v4" + (4,0)*{b_2};
+(52,8)*{\bullet} = "v5" + (4,0)*{b_1};%
+(60,0)*{\bullet} = "v6" + (4,0)*{b_0};%
+{\ar@{-} "v1"; "v0"};%
+{\ar@{-} "v1"; "v2"};%
+{\ar@{-} "v2"; "v7"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v4"; "v5"};%
+{\ar@{-} "v5"; "v6"};%
+{\ar@{.} "v7"; "v3"};%
+{\ar@{.} "v8"; "v3"};%
+\end{xy}
+\]
+\caption{A dcpo that is not a domain} \label{nondomain}
+\end{figure}
+\end{example}
+
+\begin{definition}
+A dcpo $D$ is \emph{algebraic} if for all $d$ in $D$, the set of compact elements below $d$, $\da d  \ \cap\ \mathsf{K}(D)$ is directed and $\bigsqcup (\da d\ \cap \ \mathsf{K}(D)) = d$.
+\end{definition}
+
+Note that any algebraic dcpo is necessarily a domain.
+
+\begin{example}
+Suppose $D = \mathcal{P}(X)$, the power set of some set $X$, ordered by inclusion.  The compact elements of $D$ are precisely the finite subsets of $X$.  Every set is the union (supremum) of its finite subsets, and the finite subsets of a set is directed, so $D$ is algebraic.
+\end{example}
+
+\begin{example}
+The set of real numbers, $\mathbb{R}$, with the usual order forms a domain ($x\ll y$ if and only if $x < y$).  However, there are no compact elements, so it is not algebraic.
+\end{example}
+
+\begin{theorem} \label{interpolation}
+If $D$ is a domain, and $x\ll y$, then $x\ll z\ll y$ for some $z$ in $D$.
+\end{theorem}
+
+\begin{example} \label{intervaldomain}
+Consider the set of intervals, $\{[a,b]\ |\ a,b\in \mathbb{R}, a\leq b\}$, ordered by reverse inclusion.  For any directed subset $D$, any two elements have a nonempty intersection, and $\bigsqcup D = \bigcap_{d\in D} d$.  The maximal elements are the degenerate intervals, $[x,x]$.  The way below relation can be characterized by $[a,b] \ll [c,d]$ if $[c,d] \subseteq (a,b)$.  It can easily be shown that this forms a domain.  This is called the \emph{interval domain}.
+
+We can view this domain as partial computations in search for some real number $x$.  We may never compute $x$ exactly, but at each stage of computation, we have interval containing $x$ that gets smaller and smaller.  Thus, ordering the intervals by reverse inclusion is really ordering by the information we have about $x$.
+\end{example}
+
+\subsubsection{Topology}
+
+\begin{definition}
+Let $X$ be a set.  A \emph{topology} on $X$ is a collection of subsets of $X$, called \emph{open sets}, such that every union of open sets is open, and every finite intersection of opens sets is open.  Note that viewed as the empty union and empty intersection, respectively, both the empty set, $\emptyset$, and the whole set, $X$, must be open.
+\end{definition}
+
+\begin{definition}
+A \emph{closed set} of a topological space $X$ is the complement, $X\setminus U$, of some open subset, $U$, of $X$.  For any set $F$, the \emph{closure} of $F$, denoted $\overline{F}$, is the smallest closed set containing $F$.
+\end{definition}
+
+\begin{definition}
+A function $f:X->Y$ between two topological spaces in \emph{continuous} if for any open set $V\subseteq Y$, the inverse image, $f^{-1}(V) = \{x\in X\ |\ f(x) \in V\}$ is an open set in $X$.
+\end{definition}
+
+\begin{definition}
+Let $X$ be a topological space, and let $\mathcal{B}$ be a family of open sets in $X$.  Then $\mathcal{B}$ forms a \emph{basis} for the topology on $X$ if and only if every open set is a union of elements in $\mathcal{B}$.
+\end{definition}
+
+For a dcpo $D$, we can define a topology, called the Scott topology, on $D$.  Then many of the above properties can be given topological characterizations.
+
+\begin{definition}
+For a poset $D$, a set $U$ is a \emph{lower set} if $x\in U$ and $y\sqsubseteq x \Rightarrow y\in U$.  Similarly, $U$ is an \emph{upper set} if $x\in U$ and $x\sqsubseteq y \Rightarrow y\in U$.  Also, for an arbitrary set $U\subseteq D$, the \emph{lower set} of $U$, denoted $\da U$, is equal to $\{d\in D\ |\ \exists u\in U, d\sqsubseteq u\}$.  Similarly, for the \emph{upper set} of $U$, $\ua U = \{d\in D\ |\ \exists u\in U, u\sqsubseteq d\}$.  If $U$ is a lower set, then $U = \da U$, and if $U$ is an upper set, $U = \ua U$. 
+\end{definition}
+
+\begin{definition}
+A subset $U$ of a dcpo $D$ is \emph{Scott open} if it is an upper set and if for any directed family $S$ with $\bigsqcup S\in U$, there exists $s\in S$ such that $s\in U$.
+\end{definition}
+
+A set is \emph{Scott closed} if is a lower set and closed under directed suprema.  For any element $x$, the closure of the singleton $\{x\}$ is simply its lower set, $\da x$.
+
+\begin{proposition}
+Suppose $X$ and $Y$ are two posets with the Scott topology.  A function $f:X->Y$ is continuous in the Scott topology if and only if the $f$ is Scott continuous. 
+\end{proposition}
+
+\begin{proposition}
+If $D$ is a domain, then $\Ua x$ is Scott open for all $x\in D$.  In fact, these open sets form a basis for the Scott topology on $D$.  Each open set, $U$, of $D$ can be written as $\bigcup_{x\in U} \Ua x$.
+\end{proposition}
+
+\begin{proposition}
+If $D$ is algebraic, then the open sets, $\ua x$, $x\in \mathsf{K}(D)$, form a basis for the Scott topology on $D$.  Each open set, $U$, of $D$ can be written as $\bigcup_{x\in U\cap\mathsf{K}(D)} \ua x$. 
+\end{proposition}
+
+\begin{definition}
+A subset $S$ of a topological space $X$ is \emph{saturated} if it is the intersection of the open sets that contain it.
+\end{definition}
+
+For a poset with the Scott topology, saturated sets are simply the upper sets.
+
+\begin{definition}
+A domain $D$ is \emph{coherent} if the intersection of any two compact saturated sets is $D$ is again compact.
+\end{definition}
+
+We now describe another topology that can be placed on a dcpo.
+
+\begin{definition}
+For a dcpo $D$, the \emph{Lawson topology} is the smallest topology containing the Scott-open sets and sets of the form $D\setminus\! \ua x, x\in D$.
+\end{definition}
+
+\begin{definition}
+A topology on a space $X$ is \emph{Hausdorff} if for every pair, $x$ and $y$, of distinct points in $X$, there are open sets, $U$ and $V$, such that $x\in U, y\in V$, and $U\cap V = \emptyset$.
+\end{definition}
+
+\begin{proposition}
+If $D$ is a domain, then the Lawson topology on $D$ is Hausdorff.
+\end{proposition}
+
+\begin{definition}
+Suppose $K$ is a subset of a topological space $X$.  An \emph{open cover} of $K$ is family of open sets, $\{V_i\}$ such that $K\subseteq \bigcup_i V_i$.  $K$ is \emph{compact} if and only if every open cover of $K$ has a finite subcover.
+\end{definition}
+
+\begin{proposition}
+A domain $D$ is coherent if and only if it is compact in the Lawson topology.
+\end{proposition}
+
+\subsection{Category Theory}
+
+Category theory is a formalism of mathematical structures and transformations between them.  Developed by Samuel Eilenberg and Saunders Mac Lane in the early 1940s, category theory was first used as a bridge between abstract algebra and topology.  It has since been applied to many other areas of mathematics and beyond, such as logic, computer science, and philosophy.  For a more thorough introduction to category theory, one can consult the classic book by Mac Lane \cite{mac1998categories} or the more recent text by Awodey \cite{awodey2010category}.
+
+\begin{definition}
+A \emph{category} $\mathcal{C}$ consists of a collection of objects, \textsf{Ob}($\mathcal{C}$), and a collection of morphisms, \textsf{Hom}($\mathcal{C}$).  A morphism $f$ has a domain, $A$, and a codomain, $B$, which are each objects.  This is denoted $f:A->B$.  For any two objects $A$ and $B$, the \emph{hom-set} is defined as
+\[\mathcal{C}(A,B) \equiv \{f\in \textsf{Hom}(\mathcal{C})\ |\ f:A->B\}\]
+For any three objects, $A$, $B$, and $C$, there is a binary operation, called composition, of the form $\mathcal{C}(A,B) \times \mathcal{C}(B,C) -> \mathcal{C}(A,C)$.  For two morphisms, $f:A->B$ and $g:B->C$, the composition of $f$ and $g$ is denoted $g\circ f:A->C$.  For every object $A$ there is an \emph{identity} morphism, $\textsf{id}_A:A->A$. If $f:A->B$, $g:B->C$, and $h:C->D$,  the following equations must hold:
+\[f\circ \textsf{id}_A = f = \textsf{id}_B \circ f\]
+\[h\circ (g\circ f) = (h\circ g) \circ f\]
+\end{definition}
+In category theory, many definitions require some set of equations to hold.  It often is easier to understand these equations using commutative diagrams.  For example, we can express the above equations as the following diagrams:
+\[
+\xymatrix@+1pc{
+A\ar[r]^{\textsf{id}_A}\ar[dr]_{f\circ\,\textsf{id}_A} & A \ar[d]^{f}\ar[dr]^{\textsf{id}_B\circ f} & & & A\ar[r]^{f}\ar[dr]_{g\circ f}\ar@{-->}@/^4pc/[drr]^{(h\circ g)\circ f}\ar@{-->}@/_4pc/[drr]_{h\circ(g\circ f)} & B\ar[d]^{g}\ar[dr]^{h\circ g} \\
+  & B\ar[r]_{\textsf{id}_B} & B & & & C\ar[r]_{h} & D
+}
+\]
+
+\begin{example}
+The most basic category is \textsf{Set}, whose objects are sets and whose morphisms are functions between sets.  Composition is the usual function composition.
+\end{example}
+
+\begin{definition}
+An object $I$ in a category $\mathcal{C}$ is \emph{initial} if for every object $A$, there is a unique morphism from $I$ to $A$.  An object $T$ is \emph{terminal} if for every object $A$, there is a unique morphism from $A$ to $T$.
+\end{definition}
+
+\begin{example}
+In \textsf{Set}, the initial object is the empty set and any singleton set is a terminal object.
+\end{example}
+
+\begin{definition}
+If $A$ and $B$ are objects in a category $\mathcal{C}$, then a \emph{product} of $A$ and $B$ is an object $A \times B$ along with pair of projections, $\pi_1:A\times B->A$ and $\pi_2:A\times B->B$, such that for any object $C$ and morphisms $f:C->A$ and $g:C->B$, there is a unique morphism $\langle f, g\rangle : C -> A\times B$ where the following diagram commutes.
+\[
+\xymatrix @+1pc{
+& C\ar[dl]_{f}\ar[dr]^{g}\ar@{-->}[d]^{\langle f, g\rangle} \\
+A & A\times B\ar[l]^{\pi_1}\ar[r]_{\pi_2} & B
+}
+\]
+\end{definition}
+
+The definition above defines a binary product of two objects.  This can be extended to define a product an arbitrary family of objects.
+
+\begin{example}
+In the category \textsf{Set}, the categorical product is simply the Cartesian product.
+\end{example}
+
+\begin{definition}
+For two categories $\mathcal{C}$ and $\mathcal{D}$, a \emph{functor} $F:\mathcal{C}->\mathcal{D}$ consists of an object map and a morphism map.  The object map assigns to every object $A$ of $\mathcal{C}$ an object $FA$ of $\mathcal{D}$.  For a morphism $f:A->B$, the morphism map gives a morphism $F(f):FA->FB$ such that the following equations hold:
+\[F(\textsf{id}_A) = \textsf{id}_{FA}\]
+\[F(g\circ f) = F(g) \circ F(f)\]
+\end{definition}
+
+\begin{definition}
+If $F,G:\mathcal{C}->\mathcal{D}$ are two functors, then a \emph{natural transformation} $\lambda:F->G$ associates to each object $A$ of $\mathcal{C}$ a morphism, $\lambda_A:FA -> GA$, in $\mathcal{D}$, such that for any morphism $f:A->B$, the following diagram commutes:
+\[
+\xymatrix@+1pc{
+FA\ar[r]^{F(f)}\ar[d]_{\lambda_A} & FB\ar[d]^{\lambda_B} \\
+GA\ar[r]_{G(f)} & GB
+}
+\]
+
+\end{definition}
+
+\begin{definition}
+A category $\mathcal{C}$ that has binary products also has \emph{exponentials} if for all objects $A$ and $B$, there is an object $B^A$ of $\mathcal{C}$ and a morphism, $\textsf{ev}_{A,B}:B^A \times A -> B$, such that for any morphism $g:C\times A->B$ there is a unique morphism $\Lambda(g):C-> B^A$ such that the following diagram commutes:
+\[
+\xymatrix@+1pc{
+B^A \times A\ar[r]^{\textsf{ev}_{A,B}} & B \\
+C \times A\ar[u]^{\Lambda(g)\times \textsf{id}_A}\ar[ur]_{g}
+}
+\]
+\end{definition}
+
+\begin{example}
+In the category \textsf{Set}, for two sets $A$ and $B$, the exponential object $B^A$ is the set of all functions from $A->B$.  The morphism $\textsf{ev}_{A,B}$ is just the evaluation map, and for a map $g:C\times A -> B$, the map $\Lambda(g):C-> B^A$ is the curried version of g:
+\[\Lambda(g)(c)(a) = g(c,a)\]
+\end{example}
+
+\subsubsection{Cartesian Closed Categories}
+
+In this thesis, we work within Cartesian closed categories as these are necessary to model lambda calculi \cite{abramsky2011introduction}.
+
+\begin{definition}
+A category is a \emph{Cartesian closed category (CCC)} if is has a terminal object, products, and exponentials.
+\end{definition}
+
+The category \textsf{DCPO} consisting of dcpos and Scott continuous maps is a Cartesian closed category.  However, the category \textsf{Dom} consisting of domains and Scott continuous maps is not.  
+The maximal Cartesian closed categories of domains were characterized by Jung \cite{jung1989cartesian}.  We are interested in three particular categories: \textsf{BCD}, \textsf{RB}, and \textsf{FS}.  Here are descriptions of the Cartesian closed categories of domains we will need. 
+
+\begin{definition}
+A domain is \emph{bounded complete} if every subset with an upper bound has a least upper bound.  Equivalently, a domain is \emph{bounded complete} if every nonempty subset has a greatest lower bound.  \textsf{BCD} denotes the category of bounded complete domains and Scott continuous maps.
+\end{definition}
+
+\begin{definition}
+A self-map on a domain $D$ is a \emph{deflation} if it is less than the identity map in the pointwise order and has a finite image.
+\end{definition}
+
+\begin{definition}
+A domain is a \emph{retract of a bifinite domain}, or an \emph{RB-domain}, if there exists a directed family $(f_i)_{i\in I}$ of Scott continuous deflations whose supremum is the identity map.  \textsf{RB} denotes the category of RB-domains and Scott continuous maps.
+\end{definition}
+\textsf{RB} deserves its name, because each \textsf{RB} domain is a retract of a domain that can be expressed as a (bi)limit of finite posets.
+
+\begin{definition}
+A self-map on a domain $D$ is \emph{finitely separated} from the identity map if there exists a finite set $M\subseteq D$ such that
+$\forall x\in D, \exists m\in M . f(x)\leq m \leq x$.
+\end{definition}
+
+\begin{definition}
+A domain is a \emph{finitely separated domain}, or an \emph{FS-domain}, if there exists a directed family $(f_i)_{i\in I}$ of Scott continuous self-maps, each finitely separated from the identity map, whose supremum is the identity map.  \textsf{FS} denotes the category of FS-domains and Scott continuous maps.
+\end{definition}
+
+\textsf{BCD} is a subcategory of \textsf{RB}, which is a subcategory of \textsf{FS}.  \textsf{FS} is a maximal Cartesian closed category of domains; however, it is a frustrating open question whether \textsf{RB} is a proper subcategory of \textsf{FS}.
+
+Finally, all three of these categories are subcategories of \textsf{COH}, the category of coherent domains and Scott continuous maps, but \textsf{COH} is not Cartesian closed.
+
+%\subsection{Solving Domain Equations}
+
+%\input{soldomeq}
+
+%\subsection{Curry-Howard Isomorphism}
+
+\subsection{Monads}
+
+The notion of a monad in category theory gained prominence in the theory of programming languages when Moggi used them to give a denotational semantics for computation effects \cite{moggi1991notions}.  Wadler then showed how monads could be implemented in functional programming languages \cite{wadler1992essence}.
+A monad on a category $\mathcal{C}$ can be thought of as monoid in the category of endofunctors on $\mathcal{C}$.  
+
+\begin{definition}
+A \emph{monad} on a category $\mathcal{C}$ is a triple, $(T, \eta, \mu)$, where $T$ is an endofunctor and $\eta:\mathrm{Id}_C\rightarrow T$,
+$\mu:T^2\rightarrow T$ are natural transformations such that the following diagrams commute:
+\[
+\xymatrix@+1pc{
+TX\ar[r]^{\eta_{TX}}\ar[d]_{T\eta_X}\ar[dr]_{\mathrm{id}_{TX}} & T^2 X\ar[d]^{\mu_X} & & 
+T^3 X\ar[r]^{\mu_{TX}}\ar[d]_{T\mu_X} & T^2 X\ar[d]^{\mu_X} \\
+T^2 X\ar[r]_{\mu_X} & TX & & T^2 X\ar[r]_{\mu_X} & TX
+}
+\]
+\end{definition}
+\noindent The natural transformation $\eta$ is called the unit of the monad, and $\mu$ is the multiplication.
+
+There is an alternate characterization of a monad that uses a Kleisli extension in place of the multiplication.  An endofunctor $T$ is a monad if, for any map $f:X\rightarrow TY$, there is a Kleisli extension $f^\dagger:TX\rightarrow TY$, and the following laws hold:
+
+\begin{enumerate}
+	\item $\eta^\dagger = \mathrm{id}$
+	\item $h^\dagger \circ \eta_D = h$
+	\item $k^\dagger \circ h^\dagger = (k^\dagger \circ h)^\dagger$
+\end{enumerate}
+
+Given the Kleisli extension, the multiplication is defined by $\mu = \mathrm{id}_{TX}^\dagger$.  Conversely, given the multiplication and a function $f:X\rightarrow TY$, then $f^\dagger = \mu \circ T(f)$.
+
+\begin{example}
+Consider an endofunctor, $M$, in the category \textsf{Set} that maps a set $A$ to the set of all words that can be formed using the elements of $A$ as an alphabet.  For a function $f:A->B$, $M(f):MA->MB$ is defined so that
+\[M(f)(a_1\ldots a_n) = f(a_1)\ldots f(a_n)\]
+This construction forms the free monoid over a set.  A monoid is a set with an associative binary operation and an identity element.  In this case, the binary operation is concatenation, and the identity element is the empty word.
+
+This endofunctor is also a monad.  The unit $\eta_A:A->MA$ maps an element $a\in A$ to the word consisting of just the letter $a$. The multiplication $\mu_A:M^2 A->MA$ takes a word over the alphabet $MA$, which is a word of words, and forms a single word by concatenating all of the individual words.
+\end{example}
+
+\subsection{Powerdomains}\label{powerdomains}
+
+Nondeterminism is modeled in domain theory by powerdomains which are built by considering nondeterministic choice as an idempotent, commutative, and associative operation \cite{mislove1998topology}.  This is equivalent to the algebraic definition of a semilattice, so the powerdomains are simply free ordered semilattices over a poset.  Powerdomains are so named because they are analogs in domains of the powerset of a set.  For example, the powerset of a finite set is the free semilattice monoid over the set.
+
+Suppose $P$ is a poset with an operation $+$ that is commutative and  idempotent.  If we add the rule that $x\leq x+y$, then $P$ is a sup-semilattice.  If $x\geq x+y$, then $P$ is a inf-semilattice, and an ordered semilattice will result from not assuming any relation between $x$ and $x+y$.  The lower, or Hoare, powerdomain is the free sup-semilattice over a poset, the upper, or Smyth, powerdomain is the free inf-semilattice over a poset, and the convex, or Plotkin, powerdomain is the free ordered semilattice over a poset.  When defined on domains, these powerdomains have nice topological characterizations which will be used in this thesis.
+
+\begin{definition}
+For a domain $D$, the \emph{lower powerdomain} is $\Gamma_0 (D)$, the family of nonempty Scott closed subsets of $D$, ordered by inclusion.
+\end{definition}
+
+\begin{definition}
+For a domain $D$, the \emph{upper powerdomain} is $SC(D)$, the family of nonempty, saturated, and Scott compact subsets of $D$, ordered by reverse inclusion.
+\end{definition}
+
+\begin{definition}
+For a domain $D$, a subset $L\subseteq D$ is a \emph{lens} if $L$ is Scott compact and $L=\overline{L}\:\cap \!\ua L$, where $\overline{L}$ is the Scott closure of $L$.
+\end{definition}
+
+\begin{definition} \label{egli}
+For two subsets, $A$ and $B$ of a domain $D$, we define the \emph{Egli-Milner order} by $A\sqsubseteq_{EM} B \Leftrightarrow A\subseteq \da B \wedge B\subseteq \ua A$.
+\end{definition}
+
+\begin{definition}
+For a coherent domain $D$, the \emph{convex powerdomain} is $Lens(D)$, the family of nonempty lenses, with the Egli-Milner order.
+\end{definition}
+
+The lower and upper powerdomains form a monad in the categories \textsf{BCD}, \textsf{RB}, and \textsf{FS}, while the convex powerdomain only forms a monad in \textsf{RB} and \textsf{FS}.
+
+\subsection{Probabilistic Powerdomain}
+
+The probability measures on a domain also form a domain.  The standard approach to defining the order on measures is via valuations, which we now describe:
+
+\begin{definition}
+Let $X$ be a dcpo.  A \emph{continuous valuation} on $X$ is a function $\mu:\mathcal{O}(X)->[0,1]$ (where $\mathcal{O}(X)$ denotes the Scott open subsets of $X$) with the following properties:
+\begin{enumerate}
+\item $\mu(\emptyset) = 0$
+\item $\mu(O) + \mu(U) = \mu(O\cup U) + \mu(O\cap U)$
+\item $O\subseteq U \Rightarrow \mu(O) \leq \mu(U)$
+\item $\mu(\bigcup_{i\in I} U_i) = \sup_{i\in I} \mu(U_i)$ for every directed family $(U_i)_{i\in I}$ of open sets.
+\end{enumerate}
+\end{definition}
+\begin{definition}
+For a dcpo $X$, the set of all continuous valuations on $X$, $\mathcal{V}(X)$, is called the \emph{probabilistic powerdomain} of $X$.  
+\end{definition}
+For two continuous valuations $\mu$ and $\mu'$, the order of $\mathcal{V}(X)$ is defined by $\mu\sqsubseteq\mu'$ if ${\mu(O) \leq \mu'(O)}$ for all Scott open subsets of $X$.  With this order, $\mathcal{V}(X)$ is a dcpo if $X$ is.  For a Scott continuous function $f:X->Y$, there is a Scott continuous function $\mathcal{V}(f):\mathcal{V}(X)->\mathcal{V}(Y)$ defined by:
+\[\mathcal{V}(f)(\mu)(O) = \mu(f^{-1}(O))\]
+This morphism map allows $\mathcal{V}$ to be a functor in the category \textsf{DCPO}.
+
+\begin{definition}
+Let $x\in X$ for some dcpo $X$.  The \emph{point valuation} centered at $x$, $\eta_x$ is defined by:
+\[
+	\eta_x(O) = \begin{cases}
+		1 & \text{if } x\in O \\
+		0 & \text{otherwise}
+	\end{cases}
+\]
+\end{definition}
+
+\begin{definition}
+A \emph{simple valuation} on $X$ is a convex combination of point valuations.  It can be written as $\sum_{i\in I} r_i\eta_i$, where $I$ is a finite subset of $X$.
+\end{definition}
+
+The following lemma from Claire Jones, the Splitting Lemma, is very important in understanding the probabilistic powerdomain of domains.
+\begin{lemma}
+\emph{(Splitting Lemma)} Let $\mu$ and $\nu$ be simple valuations, so that $\mu = \sum_{i\in I} r_i\eta_i$ and $\nu = \sum_{j\in J} s_j\eta_j$.  Then $\mu \sqsubseteq \nu$ if and only if there exist nonnegative numbers $(t_{i,j})_{i\in I, j\in J}$ such that:
+\begin{enumerate}
+\item $\sum_{j\in J} t_{i,j} = r_i$ for all $i$ in $I$.
+\item $\sum_{i\in I} t_{i,j} \leq s_j$ for all $j$ in $J$.
+\item If $t_{i,j} \neq 0$, then $i\sqsubseteq j$ for all $i$ in $I$ and $j$ in $J$.
+\end{enumerate}
+Moreover, $\mu \ll \nu$ if and only if $\leq$ is replaced by $<$ in (2) and $\sqsubseteq$ is replaced by $\ll$ in (3).
+\end{lemma}
+
+\begin{theorem}
+The probabilistic powerdomain of a domain is also a domain.
+\end{theorem}
+
+The probabilistic powerdomain forms a monad in the category of domains.  However, it is not known whether any Cartesian closed category of domains is closed under the probabilistic powerdomain.
+
+\subsection{Randomized Computation}
+
+We consider a randomized computation to be any program or algorithm that uses some source of randomness to guide its computation.  This includes assigning a random value to a variable or using a conditional expression that branches based on the output of a random process.  If the probability distribution of the random source is known, we can view this as probabilistic computation.  Probabilistic computation is usually represented as a probabilistic choice operator, $p +_r q$, where $p$ is chosen with probability $r$ and $q$ is chosen with probability $1-r$.
+
+Probabilistic Turing machines were first defined by de Leeuw \emph{et al} in 1956 \cite{de1956computability}.  These machines are the same as normal Turing machines with an attached random device.  This device prints 0's and 1's to a tape, with 1's occurring with probability $p$ and 0's occurring with probability $1-p$, where $0 < p < 1$.  This tape can then be used as an input tape for the Turing machine.  It was shown that as long as $p$ is computable, then these machines cannot compute anything that a deterministic machine cannot compute.  However, it may be possible that a probabilistic machine can compute something faster than any deterministic machine could \cite{gill1977computational}.
+
+Randomized computation first gained prominence when Rabin \cite{international1976probabilistic} introduced a randomized algorithm for finding the nearest pair in a set of $n$ points.  This algorithm had a linear average runtime, faster than the $n \log n$ runtime of the fastest known deterministic algorithm.  More well known are the algorithms of Solovay and Strassen \cite{solovay1977fast} and Miller and Rabin \cite{rabin1980probabilistic} for determining if a number is prime.  These algorithms run in polynomial time (with a small error probability), and they were discovered over 20 years before the AKS primality test \cite{agrawal2004primes}, the first known deterministic algorithm for recognizing prime numbers in polynomial time. 

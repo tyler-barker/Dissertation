@@ -1,0 +1,1154 @@
+%\chapter{Semantics}
+
+\reservestyle{\command}{\textbf}
+\command{Leaf, Node}
+
+\section{PCF}
+
+PCF (Programming Computable Functions) comes from a formal system introduced by Dana Scott in 1969 in a famous paper that remained unpublished until 1993 \cite{scott1993type}.  PCF augments the simply typed lambda calculus with general recursion and basic arithmetic.
+
+The semantics of PCF presented here come from Gunter's \emph{Semantics of Programming Languages} \cite{gunter1992semantics}.  They are presented here so they can be directly compared to rPCF, which augments PCF with random choice.  The theorems with PCF given below are also presented and proved in \cite{gunter1992semantics}.
+
+\subsection{Typing Rules}
+
+PCF has just two base types: $nat$ and $bool$, with natural numbers and booleans.  For a constant natural number $n$, we use the notation $\underline{n}$ to avoid confusing it with a variable.  The two boolean constants are denoted tt and ff.  For any two types, there is a function type between them.  There are functions, pred and succ, that send a $nat$ to a $nat$ and a function zero? that sends a $nat$ to a $bool$.  Then there are basic conditional and recursive statements.  Finally, given a function of type $s->t$, it can applied to something of type $s$ to get something of type $t$.  The typing rules are displayed in Table \ref{pcftypes}.
+
+As explained in Section \ref{lambdacalculus}, $H$ is a type assignment, which is a list of variables and their types.  For example, the typing rule [Pred] means that if under type assignment $H$, $M$ has type $nat$, then $\pred(M)$ also has type $nat$.
+
+\subsection{Equational Rules}
+
+Table \ref{pcfeq} lists basic equations that should hold inside of PCF.  Again, for each equation, $H$ represents an arbitrary type assignment.  The statement $(H \triangleright M = N : t)$ means that under the type assignment $H$, $M$ and $N$ are equal terms of type $t$.  
+
+These base equations can be used to prove other equations.  For example, suppose we want to prove that $\pred(\Succ(\underline{n})) = \underline{n}$.  From [Succ], $\Succ(\underline{n}) = \underline{n+1}$.  Using this and [Cong], $\pred(\Succ(\underline{n})) = \pred(\underline{n+1})$.  Finally, from [PredSucc], $\pred(\underline{n+1}) = \underline{n}$.
+
+\begin{table} 
+\begin{center}
+\begin{tabulary}{0.7\textwidth}{C>{$}C<{$}} 
+
+{[}Nat{]} & H |- \underline{n}: nat \\ \noalign{\smallskip}
+{[}True{]} & H |- \true: bool \\ \noalign{\smallskip}
+{[}False{]} & H |- \false: bool \\ \noalign{\smallskip}
+{[}Pred{]} & \inference{H |- M : nat}{H |- \pred (M) : nat} \\  \noalign{\medskip}
+{[}Succ{]} & \inference{H |- M : nat}{H |- \Succ (M) : nat} \\ \noalign{\medskip}
+{[}IsZero{]} & \inference{H |- M : nat}{H |- \zero (M) : bool} \\ \noalign{\medskip}
+{[}If{]} & \inference{H |- L : bool & H |- M : t & H |- N : t}
+{H |- \If L\; \then M\; \Else N : t} \\ \noalign{\medskip}
+{[}Lambda{]} & \inference{H, x:s |- M:t}{H |- \lambda x:s.M : s -> t)} \\  \noalign{\medskip}
+{[}Rec{]} & \inference{H, x:t |- M : t}{H |- \mu x:t.M : t} \\ \noalign{\medskip}
+{[}Ev{]} & \inference{H |- M : s -> t & H |- N : s}{H |- M(N) : t} \\ \noalign{\medskip}
+
+\end{tabulary}
+\caption{Typing Rules For PCF} \label{pcftypes}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{C>{$}C<{$}}
+{[}PredZero{]} & |- (H \triangleright \pred (0) = 0 : nat) \\ \noalign{\smallskip}
+{[}PredSucc{]} & |- (H \triangleright \pred(\underline{n+1}) = \underline{n} : nat) \\ \noalign{\smallskip}
+{[}ZeroZero{]} & |- (H \triangleright \zero(0) = \true : bool) \\ \noalign{\smallskip}
+{[}ZeroSucc{]} & |- (H \triangleright \zero(\underline{n+1}) = \false : bool) \\ \noalign{\smallskip}
+{[}Succ{]} & |- (H \triangleright \Succ(\underline{n}) = \underline{n+1} : nat) 
+\\ \noalign{\bigskip}
+{[}Mu{]} & \inference{H,x:t |- M:t}
+{|-(H\triangleright \mu x:t.M = M{[}\mu x:t. M/x{]}:t)} 
+\\ \noalign{\bigskip}
+{[}Lambda{]} & \inference{|-(H,x:s\triangleright M=N:t}
+{|-(H\triangleright \lambda x:s.M=\lambda x:s.N : s->t)}
+\\ \noalign{\bigskip}
+{[}Beta{]} & \inference{H,x:s|-M:t & H|-N:s}
+{|-(H\triangleright (\lambda x:s.M)(N) = M{[}N/x{]}:t)}
+\\ \noalign{\bigskip}
+{[}Eta{]} & \inference{H|-M:s->t & x \notin Fv(M)}
+{|-(H\triangleright\lambda x:s.M(x) = M:s->t)} 
+\\ \noalign{\bigskip}
+{[}IfTrue{]} & \inference{H |- M : t & H |- N : t}
+{|- (H \triangleright \If \true \then M \;\Else N = M : t)} \\ \noalign{\bigskip}
+{[}IfFalse{]} & \inference{H |- M : t & H |- N : t}
+{|- (H \triangleright \If \false \then M \;\Else N = N:t)} \\ \noalign{\bigskip}
+{[}App{]} & \inference{|-(H\triangleright M=M':s->t) &
+|-(H\triangleright N=N':s)}
+{|-(H\triangleright M(N) = M'(N'):t)} 
+\\ \noalign{\bigskip}
+{[}Cong{]} & \inference{|-(H\triangleright M=N:nat)} 
+{|-(H\triangleright \pred(M)=\pred(N):nat)}\\ \noalign{\bigskip}
+& \inference{|-(H\triangleright M=N:nat)}
+{|-(H\triangleright \Succ(M)=\Succ(N):nat)} \\ \noalign{\bigskip}
+& \inference{|-(H\triangleright M=N:nat)}
+{|-(H\triangleright \zero(M)=\zero(N):bool)} \\ \noalign{\bigskip}
+& \inference{|-(H\triangleright M=N:t)}
+{|-(H\triangleright \mu x:t.M=\mu x:t.N:t)} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{$\inference{|-(H\triangleright L=L':bool & 
+|-(H\triangleright M=M':t & |-(H\triangleright N=N':t}
+{|-(H\triangleright \If L\;\then M\;\Else N = \If L'\;\then M'\;\Else N':t}$} \\ \noalign{\bigskip}
+\end{tabulary}
+\caption{Equational Rules For PCF} \label{pcfeq}
+\end{center}
+\end{table}
+
+\subsection{Small Step Semantics}
+
+Although the equational rules say what should be equal in PCF, they do not say how these equations can be arrived.  For these, we can use operational semantics.  There are two types of operational semantics:  small step semantics and big step semantics.  Small step semantics show how the evaluation of terms occurs step by step.  Evaluation occurs one step at a time until a semantic value is reached.  For PCF, a semantic value is a natural number, a boolean, or a $\lambda$ function.
+
+The transition rules for the small step semantics of PCF are shown in Table \ref{pcfsmall}.  As an example, for a term $M(N)$, the small step semantics say that $M$ should be evaluated first.  If $M->M'$, then $M(N) -> M'(N)$.  So if $M-> \lambda x.M'$, then $M(N) -> (\lambda x.M')(N) -> M'[N/x]$.  If $N$ can be reached from $M$ in zero or more steps, this is denoted $M ->^{*} N$.
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{>{$}C<{$}>{$}C<{$}}
+
+\inference{}{\pred (0) -> 0} & \inference{}{\pred (\Succ (\underline{n})) -> \underline{n}} \\ \noalign{\smallskip}
+\inference{}{\zero (0) -> \true} & \inference{}{\zero (\Succ (\underline{n})) -> \false} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{\If \true \then M\; \Else N -> M}} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{\If \false \then M\; \Else N -> N}} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{(\lambda x.M)(N) -> M[N/x]}} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{\mu x.M -> M{[}\mu x.M/x{]}}} \\ 
+\noalign{\bigskip}
+\inference{M -> M'}{\pred (M) -> \pred (M')} &
+\inference{M -> M'}{\zero (M) -> \zero (M')} \\
+\noalign{\bigskip}
+\inference{M -> M'}{\Succ (M) -> \Succ (M')}
+& \inference{M -> M'}{M(N) -> M'(N)} \\ \noalign{\bigskip}
+%\multicolumn{2}{c}
+%{\inference{N->N'}{F(N) -> F(N')}} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{L -> L'}
+{\If L\;\then M\;\Else N -> \If L'\;\then M\;\Else N}} \\
+
+\end{tabulary}
+\caption{Small Step Semantics For PCF} \label{pcfsmall}
+\end{center}
+\end{table}
+The small step semantics should preserve the equational rules given above.
+\begin{theorem}
+If $H|-M:t$ and $M->N$, then $H|-N:t$ and $|-(H\triangleright M=N:t)$.
+\end{theorem}
+
+\subsection{Big Step Semantics}
+
+In big step semantics, a term is evaluated to a value in one step.  Thus, only values should appear on the right side of the $(\Downarrow)$ operator.  The transition rules for PCF's big step semantics are shown in Table \ref{pcfbig}.
+
+The big step semantics should match the transition rules for the small step semantics.
+
+\begin{theorem}
+$M\Downarrow V$ if and only if $M ->^{*}V$.
+\end{theorem}
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{>{$}C<{$}>{$}C<{$}}
+
+\inference{}{0 \Downarrow 0} & 
+\inference{}{\lambda x.M \Downarrow \lambda x.M} \\ \noalign{\smallskip}
+\inference{}{\true\!\! \Downarrow \true} &
+\inference{}{\false\!\! \Downarrow \false} \\ \noalign{\bigskip}
+\inference{M \Downarrow 0}{\pred(M) \Downarrow 0} &
+\inference{M \Downarrow \underline{n+1}}{\pred(M) \Downarrow \underline{n}} \\
+\noalign{\bigskip}
+\inference{M \Downarrow \underline{n}}{\Succ(M) \Downarrow \underline{n+1}}
+& \inference{M{[}\mu x.M/x{]} \Downarrow V}{\mu x.M \Downarrow V} \\
+\noalign{\bigskip}
+\inference{M \Downarrow 0}{\zero (M) \Downarrow \true} &
+\inference{M \Downarrow \underline{n+1}}{\zero(M) \Downarrow \false} \\
+\noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{M \Downarrow \lambda x.M' &
+N \Downarrow N' &
+M'{[}N'/x{]} \Downarrow V}
+{M(N) \Downarrow V}}  \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{B \Downarrow \true & M \Downarrow V}
+{\If B\;\then M\;\Else N \Downarrow V}}
+\\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{B \Downarrow \false & N \Downarrow V}
+{\If B\;\then M\;\Else N \Downarrow V}}
+
+\end{tabulary}
+\caption{Big Step Semantics For PCF} \label{pcfbig}
+\end{center}
+\end{table}
+
+\subsection{Denotational Semantics}
+
+Scott's model is a domain theoretic denotational semantics for PCF.  For the base term $nat$, let $|[nat|] = \mathbb{N}_{\bot}$, the flat natural numbers with an added bottom, and $|[bool|] = \mathbb{B}_{\bot}$, the flat booleans with a bottom.  For a type $s->t$, $|[s->t|] = [|[s|] -> |[t|]]$, the Scott continuous functions from $|[s|]$ to $|[t|]$.  The denotational semantics are given in Table \ref{pcfden}.
+
+As stated above, each $H$ is a type assignment.  For any $x\in H$, $H(x)$ is a type.  An \emph{H-environment} is a function $\rho$ that maps each $x\in H$ to a value in $|[H(x)|]$.  The function $\rho[x\mapsto d]$ is defined by
+\[
+\rho[x\mapsto d](y) = \begin{cases}
+	d & \text{if } y\equiv x \\
+	\rho(y) & \text{otherwise}
+	\end{cases}
+\]
+This updates the environment $\rho$ by sending $x$ to $d$.
+
+\begin{table}
+\centering
+\begin{tabular}{>{$}c<{$}}
+
+|[H \triangleright x:t|]\rho = \rho(x) \\ \noalign{\smallskip}
+|[H \triangleright \lambda x:u. M:u->v|]\rho = 
+(d\mapsto |[H,x:u\triangleright M:v|](\rho[x\mapsto d])) \\ \noalign{\smallskip}
+|[H \triangleright M(N):t|]\rho =
+\texttt{ev}(|[H\triangleright M:s->t|]\rho, 
+|[H\triangleright N :s|]\rho) \\ \noalign{\smallskip}
+|[H\triangleright\mu x:t. M:t|]\rho = 
+\texttt{fix}(d\mapsto |[H,x:t\triangleright M:t|]\rho[x\mapsto d]) \\ \noalign{\smallskip}
+|[\underline{n}|]\rho = n \\ \noalign{\smallskip}
+|[\true\!\!|]\rho = \texttt{true} \\ \noalign{\smallskip}
+|[\false\!\!|]\rho = \texttt{false} \\ \noalign{\smallskip}
+|[\Succ(M)|]\rho = \left\{
+		\begin{array}{lr}
+			|[M|]\rho + 1 & |[M|]\rho \neq \bot \\
+			\bot & |[M|]\rho = \bot
+		\end{array}
+	\right. \\ \noalign{\smallskip}
+|[\pred(M)|]\rho = \left\{
+		\begin{array}{lr}
+			|[M|]\rho - 1 & |[M|]\rho \neq \bot \\
+			\bot & |[M|]\rho = \bot
+		\end{array}
+	\right. \\ \noalign{\smallskip}
+|[\zero(M)|]\rho = \left\{
+		\begin{array}{lr}
+			\texttt{true} & |[M|]\rho = 0 \\
+			\texttt{false} & |[M|]\rho \neq \bot, 0 \\
+			\bot & |[M|]\rho = \bot
+		\end{array}
+	\right. \\ \noalign{\smallskip}
+|[H\triangleright \If L\;\then M\;\Else N|]\rho = \left\{
+		\begin{array}{lr}
+			|[M|]\rho & |[L|]\rho = \texttt{true} \\
+			|[N|]\rho & |[L|]\rho = \texttt{false} \\
+			\bot & |[L|]\rho = \bot \\
+		\end{array}
+	\right. \\
+
+\end{tabular}
+\caption{Denotational Semantics For PCF} \label{pcfden}
+\end{table}
+
+Of course, the denotational semantics should relate to the previous equational and transition rules.
+
+\begin{theorem}
+\emph{(Soundness)} If $|- (H \triangleright M = N : t)$, then $|[H \triangleright M : t|] = |[H \triangleright N : t|]$.
+\end{theorem}
+
+\begin{theorem}
+\emph{(Adequacy)} If $M$ is a closed term of ground type and $|[M|] = |[V|]$ for a value $V$, then $M\Downarrow V$.
+\end{theorem}
+
+\subsection{Full Abstraction}
+
+Computational adequacy shows that the operational semantics and denotational semantics match for ground types.  For a correspondence for arbitrary terms, a notion known as \emph{full abstraction} is used. Before full abstraction can be defined, a relation of operational equivalence must be explained.
+
+A \emph{context} is a term tree with a hole (a missing subterm). This hole can be filled with any given term of the correct type.  For a context $L$ with hole $x$, denote replacing $x$ with a term $M$ by $L\{M/x\}$.  Two terms, $M$ and $N$, are \emph{operationally equivalent} ($M \approx N$), if for any context $L$, $L\{M/x\} \Downarrow V$ if, and only if, $L\{N/x\} \Downarrow V$.  Now, the denotational semantics is said to be fully abstract if for any terms $M$ and $N$, $|[M|] = |[N|] \Leftrightarrow M \approx N$.  The $(\Rightarrow)$ direction can be proven from computational adequacy, but the $(\Leftarrow)$ direction needs further proof.  In fact, Scott's denotational model for PCF is not fully abstract.
+
+The problem is that the denotational semantics has too many elements.  Thus, there are operationally indistinguishable programs that have different denotational meanings.  For example, consider a \emph{parallel-or} function $por:\mathbb{B}_{\bot}->(\mathbb{B}_{\bot}->\mathbb{B}_{\bot})$ defined by: \vspace{-5 mm}
+\begin{align*}
+por(\text{tt})(\bot) &= \text{tt} \\
+por(\bot)(\text{tt}) &= \text{tt} \\
+por(\text{ff})(\text{ff}) &= \text{ff} \\[-13 mm]
+\end{align*}
+This fully defines the function, by monotonicity.  It turns out that there are no programs in PCF whose denotational meaning is $por$.  PCF can be extended with such a function so that Scott's model is fully abstract.
+
+In 2000, a syntax-independent, fully abstract model of PCF was found independently by Abramsky, Jagadeesan, and Malacaria \cite{abramsky2000full} and by Hyland and Ong \cite{hyland2000full}, both using game semantics.  Semantic models using domains have yet to be shown to be fully abstract.
+
+\section{Randomized PCF}
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{0.7\textwidth}{C>{$}C<{$}}
+
+{[}Zero{]} & H |- 0:\Leaf nat \\ \noalign{\smallskip}
+{[}True{]} & H |- \true:\Leaf bool \\ \noalign{\smallskip}
+{[}False{]} & H |- \false:\Leaf bool \\ \noalign{\smallskip}
+{[}Pred{]} & \inference{H |- M : \rc nat}{H |- \pred (M) : \rc nat} \\ \noalign{\medskip}
+{[}Succ{]} & \inference{H |- M : \rc nat}{H |- \Succ (M) : \rc nat} \\ \noalign{\medskip}
+{[}IsZero{]} & \inference{H |- M : \rc nat}{H |- \zero (M) : \rc bool} \\ \noalign{\medskip}
+{[}If{]} & \inference{H |- L : \rc bool & H |- M : \rc t & H |- N : \rc t}
+{H |- \If L\; \then M\; \Else N : \rc t} \\ \noalign{\medskip}
+{[}Lambda{]} & \inference{H, x:s |- M:\rc t}{H |- \lambda x:s.M : \Leaf (s -> \rc t)} \\  \noalign{\medskip}
+{[}Rec{]} & \inference{H, x:t |- M : \rc t}{H |- \mu x:t.M : \rc t} \\ \noalign{\medskip}
+{[}Ev{]} & \inference{H |- M : \rc (s -> \rc t) & H |- N : \rc s}{H |- M(N) : \rc t} \\ \noalign{\medskip}
+{[}Node{]} & \inference{H |- L : \rc t & H |- R : \rc t}{H |- \Node (L, R) : \rc t} \\ \noalign{\medskip}
+
+\end{tabulary}
+\caption{Typing Rules For rPCF} \label{rpcftypes}
+\end{center}
+\end{table}
+
+Now we modify PCF to create Randomized PCF (rPCF), using the same ideas from the random choice monad.  We begin by creating a new datatype of binary trees.  For any type $a'$, the inductive type $\rc a'$ is defined by:
+
+\begin{displaymath}
+\rc a' = \Leaf a' \ \pipe \Node (\rc a', \rc a')
+\end{displaymath}
+
+In rPCF, a distinction has to be made between deterministic types and randomized types.  The deterministic types are of the form:
+
+\begin{displaymath}
+t ::= nat \ \pipe bool \ \pipe t -> \rc t
+\end{displaymath}
+
+All types of rPCF are randomized types of the form $\rc s$ for some $s \in t$.  The terms of rPCF are given by the following grammar:
+\begin{table}[h]
+\centering
+\texttt{
+\begin{tabular}{rl}
+$M,N,L$ ::= & $\underline{n}$ | tt | ff | $x$ | \\
+& $\Succ (M)$ | $\pred (M)$ | $\zero (M)$ | $\If L \;\then M \;\Else N$ | \\
+& $\lambda x:t.M$ | $M N$ | $\mu x:t.M$ | $\Node (M, N)$
+\end{tabular}} 
+\end{table} \\[-3 mm]
+Note that the terms of rPCF are the same as PCF with the addition of $\Node (M,M)$.  Note that terms without nodes, such as $\underline{n}$, tt, and $\lambda x:t.M$, are understood to be leaves, but we do not specify it with notation.
+
+\subsection{Typing Rules}
+
+The typing rules for rPCF are given in Table \ref{rpcftypes}.  These rules are almost identical to the typing rules for PCF.  However, all types are now randomized, and there is an extra rule for nodes.
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{C>{$}C<{$}}
+{[}PredZero{]} & |- (H \triangleright \pred (0), bs = 0 : \rc nat) \\ \noalign{\smallskip}
+{[}PredSucc{]} & |- (H \triangleright \pred(\underline{n+1}), bs = \underline{n} : \rc nat) \\ \noalign{\smallskip}
+{[}ZeroZero{]} & |- (H \triangleright \zero(0), bs = \true : \rc bool) \\ \noalign{\smallskip}
+{[}ZeroSucc{]} & |- (H \triangleright \zero(\underline{n+1}), bs = \false : \rc bool) \\ \noalign{\smallskip}
+{[}Succ{]} & |- (H \triangleright \Succ(\underline{n}), bs = \underline{n+1} : \rc nat) 
+\\ \noalign{\bigskip}
+{[}Mu{]} & \inference{H,x:t |- M:\rc t}
+{|-(H\triangleright \mu x:t.M, bs = M{[}\mu x:t. M/x{]}:\rc t, bs)} 
+\\ \noalign{\bigskip}
+{[}Node{]} & \inference{|-(H\triangleright L, bs=L':\rc t) &
+|-(H\triangleright R, bs=R':\rc t, bs)}
+{|-(H\triangleright \Node(L,R), bs=\Node(L',R'):\rc t}
+\\ \noalign{\bigskip}
+{[}Lambda{]} & \inference{|-(H,x:s\triangleright M=N:\rc t}
+{|-(H\triangleright \lambda x:s.M, bs=\lambda x:s.N : \rc (s->\rc t), bs)}
+\\ \noalign{\bigskip}
+{[}Beta{]} & \inference{H,x:s|-M:\rc t & H|-\Leaf N:\rc s}
+{|-(H\triangleright (\lambda x:s.M)(\Leaf N), bs = \texttt{getTree}(M{[}N/x{]}, bs):\rc t, bs)}
+\\ \noalign{\bigskip}
+{[}Eta{]} & \inference{H|-M:\rc(s->\rc t) & x \notin Fv(M)}
+{|-(H\triangleright\lambda x:s.M(x), bs = \texttt{getTree}(M, bs):\rc(s->\rc t), bs)}
+\end{tabulary}
+\caption{Equational Rules For rPCF} \label{rpcfeq1}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{C>{$}C<{$}}
+
+{[}IfTrue{]} & \inference{H |- M : \rc t & H |- N : \rc t}
+{|- (H \triangleright \If \true \then M \;\Else N, bs = \texttt{getTree}(M, bs) : \rc t, bs)} \\ \noalign{\bigskip}
+{[}IfFalse{]} & \inference{H |- M : \rc t & H |- N : \rc t}
+{|- (H \triangleright \If \false \then M \;\Else N, bs = \texttt{getTree}(N, bs) : \rc t, bs)} \\ \noalign{\bigskip}
+{[}IfNode{]} & \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{$
+\inference
+{|- (H \triangleright \If L \;\then M \;\Else N,bs+\false\!\! = X) &
+|- (H\triangleright \If R \;\then M \;\Else N,bs+\true\!\! = Y)}
+{|- (H \triangleright \If \Node(L,R) \;\then M \;\Else N, bs = \Node(X,Y), bs)}
+$}
+\\ \noalign{\bigskip}
+{[}App{]} & \inference{|-(H\triangleright M, bs=M':\rc(s->\rc t), bs) &
+|-(H\triangleright N, bs =N':\rc s, bs)}
+{|-(H\triangleright M(N),bs = M'(N'):\rc t,bs)} 
+\\ \noalign{\bigskip}
+{[}LeafNode{]} & \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{$
+\inference
+{|- (H\triangleright (\Leaf F)(L), bs+\false\!\! = X) &
+|- (H\triangleright (\Leaf F)(R), bs+\true\!\! = Y)}
+{|- (H\triangleright (\Leaf F)(\Node(L,R)), bs = \Node(X,Y), bs)}
+$}
+\\ \noalign{\bigskip}
+{[}NodeLeaf{]} & \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{$
+\inference
+{|- (H\triangleright F(\Leaf M), bs+\false\!\! = X) &
+|- (H\triangleright G(\Leaf M), bs+\true\!\! = Y)}
+{|- (H\triangleright (\Node(F,G))(\Leaf M), bs = \Node(X,Y), bs)}
+$}
+\\ \noalign{\bigskip}
+{[}NodeNode{]} & \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{$
+\inference
+{|- (H\triangleright F(L), bs+\false\!\! = X) &
+|- (H\triangleright G(R), bs+\true\!\! = Y)}
+{|- (H\triangleright (\Node(F,G))(\Node(L,R)), bs = \Node(X,Y), bs)}
+$}
+\\ \noalign{\bigskip}
+{[}Cong{]} & \inference{|-(H\triangleright M, bs=N:\rc nat, bs)} 
+{|-(H\triangleright \pred(M), bs=\pred(N):\rc nat, bs)}\\ \noalign{\bigskip}
+& \inference{|-(H\triangleright M, bs=N:\rc nat, bs)}
+{|-(H\triangleright \Succ(M), bs=\Succ(N):\rc nat, bs)} \\ \noalign{\bigskip}
+& \inference{|-(H\triangleright M, bs=N:\rc nat, bs)}
+{|-(H\triangleright \zero(M), bs=\zero(N):\rc bool, bs)} \\ \noalign{\bigskip}
+& \inference{|-(H\triangleright M, bs=N:\rc t, bs)}
+{|-(H\triangleright \mu x:t.M, bs=\mu x:t.N:\rc t, bs)} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{$\inference{|-(H\triangleright L, bs=L':\rc bool, bs) & 
+|-(H\triangleright M,bs=M' :\rc t, bs) & |-(H\triangleright N,bs=N':\rc t, bs)}
+{|-(H\triangleright \If L\;\then M\;\Else N,bs = \If L'\;\then M'\;\Else N':\rc t,bs)}$} \\ \noalign{\bigskip}
+
+\end{tabulary}
+\caption{Equational Rules For rPCF (Continued)} \label{rpcfeq2}
+\end{center}
+\end{table}
+
+\subsection{Equational Rules}
+
+We define a function \texttt{getTree} that takes a value, $T$ of type $\rc a'$ and a list of booleans and returns a subtree of $T$.  A list is of the form $[\texttt{hd},\texttt{tl}]$, where $\texttt{hd}$ is the first element of the list, and $\texttt{tl}$ is the rest of the list.  The list of booleans serves as our random oracle, determining which direction to move up the tree.
+\begin{displaymath}
+	\texttt{getTree}(T, bs) = \left\{
+		\begin{array}{lr}
+			T & \If T = \Leaf x \\
+			T & \If bs \textrm{ is empty} \\
+			\texttt{getTree}(L, \texttt{tl}) & \If T = \Node(L,R), bs = {[}\text{ff}, \texttt{tl}{]} \\
+			\texttt{getTree}(R, \texttt{tl}) & \If T = \Node(L,R), bs = {[}\text{tt}, \texttt{tl}{]}
+		\end{array}
+	\right.		
+\end{displaymath}
+
+Evaluating terms of rPCF will use a list of booleans, $bs$, that begins as the empty list.  The equational rules of rPCF are listed in Table \ref{rpcfeq1} and Table \ref{rpcfeq2}.
+
+Notice that for terms without random choice (without nodes), the equational rules exactly match the rules for normal PCF.  For [Beta], [IfTrue], and [IfFalse], the \texttt{getTree} function gets called, but if the list of booleans, $bs$, is empty, this has no effect.  The list of booleans only gets populated when determining the equality of terms with nodes.
+
+\subsection{Small Step Semantics}
+
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{>{$}C<{$}>{$}C<{$}}
+
+\inference{}{\pred (0), bs -> 0} & \inference{}{\pred (\underline{n+1}), bs -> \underline{n}} \\ \noalign{\smallskip}
+\inference{}{\zero (0), bs -> \true} & \inference{}{\zero (\underline{n+1}), bs -> \false} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{\If \true \then M\; \Else N, bs -> \texttt{getTree}(M, bs), bs}} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{\If \false \then M\; \Else N, bs -> \texttt{getTree}(N, bs), bs}} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{(\lambda x.M)(\Leaf N), bs -> \texttt{getTree}(M[N/x], bs), bs}} \\ 
+\noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{M,bs -> M', bs}{\texttt{getTree}(M,bs),bs -> \texttt{getTree}(M', bs), bs}} \\ \noalign{\smallskip}
+\multicolumn{2}{c}
+{\inference{}{\mu x.M, bs -> M{[}\mu x.M/x{]}, bs}} \\ 
+\noalign{\bigskip}
+\inference{M, bs -> M', bs}{\pred (M), bs -> \pred (M'), bs} &
+\inference{M, bs -> M', bs}{\zero (M), bs -> \zero (M'), bs} \\
+\noalign{\bigskip}
+\inference{M, bs -> M', bs}{\Succ (M), bs -> \Succ (M'), bs}
+& \inference{M, bs -> M', bs}{M(N),bs -> M'(N), bs} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{N, bs->N', bs}{(\Leaf F)(N), bs -> (\Leaf F)(N'), bs}} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{N, bs->N', bs}{(\Node (F, G))(N), bs -> (\Node (F, G))(N'), bs}} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{F(\Leaf N), bs+\false\!\! ->L & 
+G(\Leaf N), bs+\true\!\! ->R}
+{(\Node (F,G))(\Leaf (N), bs -> \Node(L,R), bs}} \\
+\noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{(\Leaf F)(L), bs+\false\!\! ->L' & 
+(\Leaf F)(R), bs+\true\!\! ->R'}
+{(\Leaf F)(\Node(L,R)), bs -> \Node(L',R'), bs}} \\
+\noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{F(L), bs+\false\!\! ->L' & 
+G(R), bs+\true\!\! ->R'}
+{(\Node (F,G))(\Node (L,R)), bs -> \Node(L',R'), bs}} \\
+\noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{L, bs -> L', bs}
+{\If L\;\then M\;\Else N, bs -> \If L'\;\then M\;\Else N, bs}} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{\If L\;\then M\;\Else N, bs+\false\!\! -> L' & 
+\If R\;\then M\;\Else N, bs+\true\!\! -> R'}
+{\If \Node (L,R)\;\then M\;\Else N, bs -> \Node (L',R'), bs}} \\ \noalign{\bigskip}
+\multicolumn{2}{c}
+{\inference{L, bs -> L' & R, bs -> R'}
+{\Node (L,R), bs -> \Node (L', R'), bs}}
+
+\end{tabulary}
+\caption{Small Step Semantics For PCF} \label{rpcfsmall}
+\end{center}
+\end{table}
+
+The transition rules for the small step semantics of rPCF are displayed in Table \ref{rpcfsmall}.  Again, a list of booleans is used when evaluating a term.  This list is never changed by a transition rule.  However, when evaluating conditional statements or applications with a node, a false value, ff, is added to the list (denoted $bs+\text{ff}$) when evaluating the left subtree, and a true value, tt, is added (denoted $bs+\text{tt}$) when evaluating the right subtree.  This is lifting the conditional and application operations to the randomized types, so the Kleisli extension of the monad is used.  Note that when evaluating a single node, the Kleisli extension is not used, so nothing is added to the list.
+
+Let $M->^{*}N$ denote that $N$ can be reached from $M$ in zero or more steps.
+
+\begin{lemma} \label{small1}
+If $M, bs->^{*}N, bs$, then 
+\begin{enumerate}
+\item
+$(\Leaf F)(M), bs ->^{*}(\Leaf F)(N), bs$, where $\Leaf F$ can be $\pred, \Succ, \zero$, or $\lambda x.N'$.
+%\item
+%$\pred(M), bs->^{*}\pred(N), bs$
+%\item
+%$\Succ(M), bs->^{*}\Succ(N), bs$
+%\item
+%$\zero(M), bs->^{*}\zero(N), bs$
+\item
+$M(L), bs->^{*}N(L), bs$
+\item
+$\If M\;\then L_1\;\Else L_2, bs ->^{*} \If N\;\then L_1\;\Else L_2, bs$
+\item
+$getTree(M, bs) ->^{*} getTree(N, bs)$
+\item
+$(\Node(F,G))(M), bs ->^{*} (\Node(F,G))(N), bs$
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+We outline the proof of 1.  The proof is by induction on the length of the evaluation of 
+$M, bs->^{*}N, bs$.  If the length is zero, $M\equiv N$, so the proof is trivial.  For an evaluation of length $n$, we can write the evaluation as $M, bs->M', bs->^{*}N, bs$, where the second evaluation is of length $n-1$.  Then $(\Leaf F)(M'), bs->^{*}(\Leaf F)(N), bs$ by the induction hypothesis, and $(\Leaf F)(M), bs ->(\Leaf F)(M'), bs$ by the small step semantics transition rules.  Thus, $(\Leaf F)(M), bs->^{*}(\Leaf F)(N), bs$.  The proofs of $2-6$ are similar.
+\hfill $\blacksquare$
+\end{proof}
+
+The following lemma can be proven similarly.
+\begin{lemma} \label{small2}
+%\hfill \break
+The following statements about the $->^{*}$ relation are true:
+\begin{enumerate}
+
+\item If $F(\Leaf N),bs+\false\!\! ->^{*} L$ and $G(\Leaf N),bs+\true\!\! ->^{*} R$, \\then $(\Node(F,G))(\Leaf N), bs ->^{*} \Node(L,R), bs$
+\item If $(\Leaf F)(L), bs+\false\!\! ->^{*}L'$ and $(\Leaf F)(R), bs+\true\!\! ->^{*}R'$, \\then $(\Leaf F)(\Node(L,R)), bs ->^{*} \Node(L',R'), bs$
+\item If $F(L), bs+\false\!\! ->^{*} L'$ and $G(R), bs+\true\!\! ->^{*} R'$, \\then $(\Node(F,G))(\Node(L,R)), bs ->^{*} \Node(L',R'), bs$
+\item If $\If L\;\then M\;\Else N, bs+\false\!\! ^{*} L'$ and $ 
+\If R\;\then M\;\Else N, bs+\true\!\! ->^{*} R'$, \\then 
+$\If \Node (L,R)\;\then M\;\Else N, bs ->^{*} \Node (L',R'), bs$
+\item If $L,bs ->^{*} L'$ and $R,bs ->^{*} R'$, \\then
+$\Node(L,R),bs ->^{*} \Node(L',R')$
+\end{enumerate}
+
+\end{lemma}
+
+As was stated for PCF, the small step semantics should match the typing and equational rules.
+
+\begin{theorem}
+If $H|-M:t$ and $M, bs->N, bs$, then $H|-N:t$ and $|-(H\triangleright M, bs=N:t, bs)$.
+\end{theorem}
+
+\begin{proof}
+The proof is by structural induction on $M$.  If $M\equiv \pred (0)$, then $N \equiv 0$.  $M$ and $N$ are both of type $\rc nat$, and by [PredZero], $\pred (0), bs = 0$.  If $M\equiv \pred ( \underline{n+1})$, then $N\equiv \underline{n}$.  They are both of type $\rc nat$, and by [PredSucc], $\pred (\underline{n+1}), bs = \underline{n}$.  If $M\equiv \zero(0)$, then $N\equiv$ tt, they are both of type $\rc bool$, and are equal by [ZeroZero].  If $M\equiv \zero(\underline{n+1})$, then $N\equiv$ ff, they are both of type $\rc bool$, and are equal by [ZeroSucc].  If $M\equiv \If \true \then N_1\; \Else N_2$, then $N\equiv \texttt{getTree}(N_1, bs)$, they have the same type, and by [IfTrue] are equal.  The case where $M \equiv \If \false \then N_1\; \Else N_2$ is similar.  If $M\equiv (\lambda x.V)(\Leaf W)$, then $N\equiv getTree(V[W/x], bs)$.  They both have the type of $V$ and by [Beta] are equal.  If $M\equiv \mu x.V$, then $N\equiv V[\mu x.V/x]$.  They both have the type of $V$ and by [Mu] are equal.
+
+If $M\equiv \pred(M')$, then $N\equiv \pred(N')$, where $M', bs->N', bs$.  By the induction hypothesis, $M', bs=N', bs$, and by [Cong], $\pred (M'), bs=\pred(N'), bs$.  The cases for $M\equiv \zero(M')$ and $M\equiv \Succ(M)$ are similar.  If $M\equiv F(V)$ and $N\equiv F'(V)$, where $F,bs->F',bs$, then by the induction hypothesis, $F=F'$, and by [App], $F(V)=F'(V)$.  The remaining cases are all similar.
+\hfill $\blacksquare$
+\end{proof}
+
+\subsection{Big Step Semantics}
+
+The rules for the big step semantics of rPCF are displayed in Table \ref{rpcfbig}.  Again, only values appear on the right side of the $(\Downarrow)$ operator.  In PCF, values are natural numbers, booleans, or $\lambda$ functions.  In rPCF, values are nodes and leaves only containing values of PCF.
+
+\begin{table}
+\begin{center}
+\begin{tabulary}{1\textwidth}{>{$}C<{$}>{$}C<{$}}
+
+\inference{}{0 \Downarrow 0} & 
+\inference{}{\lambda x.M \Downarrow \lambda x.M} \\
+\inference{}{\true\!\! \Downarrow \true} &
+\inference{}{\false\!\! \Downarrow \false} \\ \noalign{\bigskip}
+\inference{M, bs \Downarrow 0}{\pred(M), bs \Downarrow 0} &
+\inference{M, bs \Downarrow \underline{n+1}}{\pred(M), bs \Downarrow \underline{n}} \\
+\noalign{\bigskip}
+\inference{M, bs \Downarrow \underline{n}}{\Succ(M), bs \Downarrow \underline{n+1}}
+& \inference{M{[}\mu x.M/x{]}, bs \Downarrow V}{\mu x.M, bs \Downarrow V} \\
+\noalign{\bigskip}
+\inference{M, bs \Downarrow 0}{\zero (M), bs \Downarrow \true} &
+\inference{M, bs \Downarrow \underline{n+1}}{\zero(M), bs \Downarrow \false} \\
+\noalign{\bigskip}
+
+\end{tabulary}
+
+\begin{tabulary}{1\textwidth}{>{$}C<{$}}
+
+\inference{M, bs \Downarrow \Node(L,R) & \zero(L), bs \Downarrow X &
+\zero(R), bs \Downarrow Y}{\zero(M), bs \Downarrow \Node(X,Y)} \\
+\noalign{\bigskip}
+
+\inference{M, bs \Downarrow \Node(L,R) & \pred(L), bs \Downarrow X &
+\pred(R), bs \Downarrow Y}
+{\pred(M), bs \Downarrow \Node(X,Y)}  \\ \noalign{\bigskip}
+
+\inference{M, bs \Downarrow \Node(L,R) & \Succ(L), bs \Downarrow X &
+\Succ(R), bs \Downarrow Y}
+{\Succ(M), bs \Downarrow \Node(X,Y)}  \\ \noalign{\bigskip}
+
+\inference{M, bs \Downarrow \lambda x.M' &
+N \Downarrow \Leaf N' &
+M'{[}N'/x{]}, bs \Downarrow V}
+{M(N),bs \Downarrow \texttt{getTree}(V, bs)}  \\ \noalign{\bigskip}
+
+\inference{M, bs \Downarrow \Node(F,G) & N,bs \Downarrow \Leaf V & 
+F (\Leaf V), bs+\false \Downarrow X & 
+G (\Leaf V), bs+\true \Downarrow Y}
+{M(N), bs \Downarrow \Node (X, Y)} \\ \noalign{\bigskip}
+
+\inference{M, bs \Downarrow \Leaf F & 
+N \Downarrow \Node(L,R) &
+(\Leaf F) L, bs+\false \Downarrow X & 
+(\Leaf F) R, bs+\true \Downarrow Y}
+{M(N),bs \Downarrow \Node (X, Y)}  \\ \noalign{\bigskip}
+
+\inference{M, bs \Downarrow \Node(F,G) &
+N \Downarrow \Node(L,R) & 
+F L, bs+\false \Downarrow X & 
+F R, bs+\true \Downarrow Y}
+{M(N),bs \Downarrow \Node (X, Y)}  \\ \noalign{\bigskip}
+
+\inference{B \Downarrow \Leaf \true & M, bs \Downarrow V}
+{\If B\;\then M\;\Else N, bs \Downarrow \texttt{getTree}(V, bs)}
+\\ \noalign{\bigskip}
+
+\inference{B \Downarrow \Leaf \false & N, bs \Downarrow V}
+{\If B\;\then M\;\Else N, bs \Downarrow \texttt{getTree}(V, bs)}
+\\ \noalign{\bigskip}
+
+\inference{B \Downarrow \Node(L,R) &
+\If L\;\then M\;\Else N, bs+\false \Downarrow X &
+\If R\;\then M\;\Else N, bs+\true \Downarrow Y}
+{\If B\;\then M\;\Else N, bs \Downarrow \Node (X,Y)} \\ \noalign{\bigskip}
+
+\inference{L, bs \Downarrow X & R, bs \Downarrow Y}
+{\Node (L,R), bs \Downarrow \Node (X,Y)} \\ \noalign{\bigskip}
+
+\inference{M, bs \Downarrow V}{\texttt{getTree}(M, bs) \Downarrow \texttt{getTree}(V, bs)}
+\end{tabulary}
+\caption{Big Step Semantics For rPCF} \label{rpcfbig}
+\end{center}
+\end{table}
+
+Now we show that the big and small step semantics coincide.
+
+\begin{theorem}
+$M, bs\Downarrow V \iff M, bs ->^{*} V$
+\end{theorem}
+\begin{proof}
+First, the proof of ($\Rightarrow$) is done by induction on the height of the derivation of $M\Downarrow V$.  If the height is one, then $M$ is a value, so $M\equiv V$.  Now for derivations of larger height, the last step is considered.  If $M\equiv \pred(M')$ and $M, bs \Downarrow 0$ since $M', bs \Downarrow 0$, then $M', bs ->^{*}0$ by the induction hypothesis, and by Lemma \ref{small1}, $M, bs \equiv \pred(M'), bs ->^{*} \pred(0), bs -> 0$.  The other cases for $\pred\!\!$, $\Succ\!\!,$ and $\zero\!\!$ are similar for cases not involving nodes.  For recursion, if $M\equiv \mu x.M'$, and $M, bs \Downarrow V$ since $M'[\mu x.M'/x], bs \Downarrow V$, then $M'[\mu x.M'/x], bs ->^{*}V$ by the induction hypothesis.  $\mu x.M', bs -> M'[\mu x.M'/x], bs$ is one of the transition rules, so $M, bs ->^{*} V$.
+
+Suppose $M\equiv F(N)$ and $M, bs\Downarrow \texttt{getTree}(V,bs)\equiv V'$ is derived using $(F,bs\Downarrow \lambda x.M')$, ${(N,bs\Downarrow \Leaf N')}$, 
+and $(M'[N'/x], bs\Downarrow V)$.  Then by the induction hypothesis, $(F,bs ->^{*} \lambda x.M')$, $(N,bs ->^{*} \Leaf N')$, 
+and $(M'[N'/x], bs ->^{*} V)$.  $F\equiv \lambda x.M'$ since there are no derivations of $\lambda x.M'$.  Because $N,bs ->^{*} \Leaf N'$, by Lemma \ref{small1}, $F(N), bs ->^{*} F(\Leaf N'), bs$, and by the small step transition rules, $F(\Leaf N'), bs -> \texttt{getTree}(M'[N'/x], bs)$.  Finally by Lemma \ref{small1}, since $(M'[N'/x], bs ->^{*} V)$, $\texttt{getTree}(M'[N'/x], bs) ->^{*} \texttt{getTree}(V, bs)$.  Thus, $F(N) ->^{*} \texttt{getTree}(V,bs)$.
+
+If $M\equiv M'(N)$ and $M,bs \Downarrow \Node(X,Y)$ using $M',bs \Downarrow \Node(F,G)$ and $N,bs\Downarrow \Leaf V$, then by the induction hypothesis, $M',bs ->^{*} \Node(F,G)$ and $N,bs->^{*} \Leaf V$.  By Lemma \ref{small1}, $M'(N), bs ->^{*} (\Node(F,G))(N), bs$, and $(\Node(F,G))(N), bs ->^{*} (\Node(F,G))(\Leaf V), bs$.  Also by the induction hypothesis, $F(\Leaf V), bs+\false ->^{*} X$ and $G(\Leaf V), bs+\true ->^{*} Y$.  Thus by Lemma \ref{small2}, $(\Node(F,G))(\Leaf V) ->^{*} \Node(X,Y), bs$.  Therefore, $M,bs ->^{*} \Node(X,Y)$.  The rest of the cases are similar.
+
+For ($\Leftarrow$), first it is shown that if $M, bs -> N, bs \Downarrow V$, then $M, bs \Downarrow V$.  This is done by induction on the structure of $M$.  For constant $M$, there is nothing to prove.  If $M\equiv \pred(M')$, then there are few possibilities for $N$.  If $N\equiv \pred(N')$, with $M', bs-> N', bs$, then there are few cases for $N'$.  If $N', bs \Downarrow 0$, then $M', bs \Downarrow 0$ and $\pred(M'), bs \Downarrow 0 \equiv V$.  If $N', bs \Downarrow \underline{n+1}$, then $M', bs \Downarrow \underline{n+1}$ and $\pred(M'), bs \Downarrow \underline{n} \equiv V$.  If $N', bs \Downarrow \Node(L,R)$, where $\pred(L),bs\Downarrow X$ and $\pred(R),bs\Downarrow Y$, then $M', bs \Downarrow \Node(L,R)$ and $V\equiv \Node(X,Y)$.  Thus, $M, bs \equiv \pred(M'), bs \Downarrow \Node(X,Y)$.  
+
+If $M\equiv \pred (0) -> 0 \equiv N$, then $V\equiv 0$ and $\pred(0), bs \Downarrow 0$.  If $M\equiv \pred (\underline{n+1}) -> \underline{n} \equiv N$, then $V\equiv \underline{n}$ and $\pred(\underline{n+1}), bs \Downarrow \underline{n}$.
+The cases for $\Succ\!\!$ and $\zero\!\!$ are similar.
+
+If $M\equiv (\If \true \then M'\;\Else N', bs) -> \texttt{getTree}(M', bs) \Downarrow V$, then $V\equiv getTree(V', bs)$, where $M', bs\Downarrow V'$.  Thus, $(\If \true \then M'\;\Else N', bs) \Downarrow \texttt{getTree}(V', bs) \equiv V$.  The case for $\If \false\!\!$ is similar.  If $M\equiv (\If \Node(L,R)\; \then M'\;\Else N', bs) -> \Node(L',R'), bs \Downarrow V$, then by induction: \begin{align*}
+(L', bs+\false \Downarrow V_L) &\Rightarrow (\If L \;\then M'\; \Else N',bs+\false \Downarrow V_L) \\
+(R', bs+\true \Downarrow V_R) &\Rightarrow (\If R \;\then M'\; \Else N',bs+\true \Downarrow V_R)
+\end{align*}
+ Then $(\If \true \then M'\;\Else N', bs) \Downarrow \Node(V_L, V_R) \equiv V$.
+
+For application, suppose $M\equiv (\lambda x.M')(\Leaf N'), bs -> \texttt{getTree}(M'[N/x], bs) \Downarrow V$.  Then ${V\equiv \texttt{getTree}(V', bs)}$, where $M'[N/x], bs \Downarrow V'$.  Thus $(\lambda x.M')(\Leaf N'), bs \Downarrow getTree(V',bs) \equiv V$.  If $M\equiv (\Node(F,G))(\Node(L,R)), bs -> \Node(L',R'), bs \Downarrow V$, then by induction,
+\begin{align*}
+(L',bs+\false \Downarrow V_L) &\Rightarrow (F(L),bs+\false \Downarrow V_L) \\
+(R',bs+\true \Downarrow V_R) &\Rightarrow (G(R),bs+\true \Downarrow V_R)
+\end{align*}
+Then $(\Node(F,G))(\Node(L,R)), bs \Downarrow \Node(V_L, V_R) \equiv V$.  The other cases for application are similar.
+
+If $M\equiv \mu x.M', bs -> M'[\mu x.M'/x], bs \Downarrow V$, then $M \Downarrow V$ by the recursion rule for $(\Downarrow)$.  The rest of the cases are all similar.
+
+Now, the proof can be finished by induction on the length of the evaluation of $M->^{*} V$.  If the length is zero, then the result is obvious.  If $M->^{*}_{n+1} V$, then there is some $N$ such that $M-> N ->^{*}_{n} V$.  By induction, $N\Downarrow V$, and from the inductive proof above, $M\Downarrow V$.
+\hfill $\blacksquare$
+\end{proof}
+
+%\begin{lemma}
+%$M \Downarrow V$ in PCF iff $M' \Downarrow V'$ in rPCF, where $M'$ is the rPCF equivalent of $M$ with no nodes, only leaves.
+%\end{lemma}
+
+\subsection{Denotational Semantics}
+
+\begin{table}
+\centering
+\begin{tabular}{>{$}c<{$}}
+
+|[H \triangleright x:\rc t, bs|]\rho = \rho(x) \\ \noalign{\smallskip}
+|[H \triangleright \lambda x:u. M:\rc(u->\rc v), bs|]\rho = 
+(\epsilon, (d\mapsto |[H,x:u\triangleright \texttt{getTree}(M, bs):\rc v|](\rho[x\mapsto d]))) \\ \noalign{\smallskip}
+|[H \triangleright M(N):\rc t, bs|]\rho =
+|[\texttt{ev}^\dagger|](|[H\triangleright M:\rc(s->\rc t), bs|]\rho, 
+|[H\triangleright N :\rc s, \texttt{nil}|]\rho) \\ \noalign{\smallskip}
+|[H\triangleright\mu x:t. M:\rc t, bs|]\rho = 
+\texttt{fix}(d\mapsto |[H,x:t\triangleright M:\rc t, bs|]\rho[x\mapsto d]) \\ \noalign{\smallskip}
+|[H \triangleright \Leaf \underline{n} :\rc nat, bs|]\rho = (\epsilon, \chi_n) \\ \noalign{\smallskip}
+|[H \triangleright \Leaf \true :\rc bool, bs|]\rho = (\epsilon, \chi_{\true\!\!}) \\ \noalign{\smallskip}
+|[H \triangleright \Leaf \false :\rc bool, bs|]\rho = (\epsilon, \chi_{\false\!\!}) \\ \noalign{\smallskip}
+|[H \triangleright \Succ(M) :\rc nat, bs|]\rho = |[\Succ\!\!|]^\dagger(|[H\triangleright M, bs|]\rho) \\ \noalign{\smallskip}
+|[H \triangleright \pred(M) :\rc nat, bs|]\rho = |[\pred\!\!|]^\dagger(|[H\triangleright M, bs|]\rho) \\ \noalign{\smallskip}
+|[H \triangleright \zero(M) :\rc bool, bs|]\rho = |[\zero\!\!|]^\dagger(|[H\triangleright M, bs|]\rho) \\ \noalign{\smallskip}
+|[H\triangleright \If L\;\then M\;\Else N, bs|]\rho = 
+|[\If\!\!^\dagger|](|[H\triangleright L, \texttt{nil}|]\rho, |[H\triangleright \texttt{getTree}(M, bs)|]\rho, |[H\triangleright \texttt{getTree}(N, bs)|]\rho) \\ \noalign{\smallskip}
+|[H \triangleright \Node(L,R), bs|]\rho = |[\Node\!\!|](|[H\triangleright L, bs|]\rho, |[H\triangleright R, bs|]\rho) \\ \noalign{\smallskip}
+|[H\triangleright \texttt{getTree}(M,bs)|]\rho = |[\texttt{getTree}|](|[H\triangleright M,bs|]\rho, bs) \\
+
+\end{tabular}
+\caption{Denotational Semantics For rPCF} \label{rpcfden}
+\end{table}
+
+Now we develop a denotation semantics for rPCF using the random choice monad.  For deterministic types, we use the same domains that were used in PCF:  $|[nat|] = \Nat_\bot$, $|[bool|] = \Bool_\bot$ and $|[s-> t|] = [|[s|]->|[t|]]$.
+
+Associate to the randomized type $\rc nat$ the domain $RC(\Nat_\bot)$ (so $|[\rc nat|] = RC(\Nat_\bot)$).  For $\rc bool$, we use the domain $RC(\Bool_\bot)$, and for $\rc (s-> \rc t)$, we use the domain $RC[|[s|] -> |[\rc t|]]$.
+
+Now we define some Scott continuous functions that are used in the denotational semantics.
+  
+\noindent Define function $|[\Succ\!\!|] : \Nat_\bot -> RC(\Nat_\bot)$ by:
+\begin{displaymath}
+	|[\Succ\!\!|](n) = \left\{
+		\begin{array}{lr}
+			\bot & \If n = \bot \\
+			(\epsilon, \chi_{n+1}) & \Else
+		\end{array}
+	\right.		
+\end{displaymath}
+Define function $|[\pred\!\!|] : \Nat_\bot -> RC(\Nat_\bot)$ by:
+\begin{displaymath}
+	|[\pred\!\!|](n) = \left\{
+		\begin{array}{lr}
+			\bot & \If n = \bot \\
+			(\epsilon, \chi_0) & \If n = 0 \\
+			(\epsilon, \chi_{n-1}) & \Else
+		\end{array}
+	\right.		
+\end{displaymath}
+Define function $|[\zero\!\!|] : \Nat_\bot -> RC(\Bool_\bot)$ by:
+\begin{displaymath}
+	|[\zero\!\!|](n) = \left\{
+		\begin{array}{lr}
+			\bot & \If n = \bot \\
+			(\epsilon, \chi_{\true\!\!}) & \If n = 0 \\
+			(\epsilon, \chi_{\false\!\!}) & \Else
+		\end{array}
+	\right.		
+\end{displaymath}
+Define function $|[\If\!\!|] : RC(\mathbf{T})^2 -> \Bool_\bot -> RC(\mathbf{T})$ by:
+\begin{displaymath}
+	|[\If\!\!|](x,y)(b) = \left\{
+		\begin{array}{lr}
+			\bot & \If b = \bot \\
+			x & \If b = \true\!\! \\
+			y & \Else
+		\end{array}
+	\right.		
+\end{displaymath}
+Now define $|[\If\!\!^\dagger|] : RC(\Bool_\bot) \times RC(\mathbf{T})^2 -> RC(\mathbf{T})$ by 
+\begin{displaymath}
+|[\If\!\!^\dagger|](b,x,y) = (|[\If\!\!|](x,y))^\dagger(b)
+\end{displaymath}
+Define $|[\texttt{ev}^\dagger|] : RC([\mathbf{S} -> RC(\mathbf{T})]) \times RC(\mathbf{S}) -> RC(\mathbf{T})$ by 
+\begin{displaymath}
+|[\texttt{ev}^\dagger|](f,x) = 
+(\lambda g:[\mathbf{S}->RC(\mathbf{T})].g^\dagger(x))^\dagger (f)
+\end{displaymath}
+Define $|[\Node\!\!|] : RC(\mathbf{T})^2 -> RC(\mathbf{T})$ by 
+\begin{displaymath}
+|[\Node\!\!|]((M,f), (N,g)) = (0*M \cup 1*N, F)
+\end{displaymath}
+where $F(0*w) = f(w)$ and $F(1*w) = g(w)$.
+
+\noindent Finally, define $|[\texttt{getTree}|] : 
+RC(\mathbf{T}) \times \{0,1\}^\infty -> RC(\mathbf{T})$ by
+\begin{displaymath}
+|[\texttt{getTree}|]((M,f), w) = (\{v\ |\ w*v\in M\}, g)
+\end{displaymath}
+where $g(v) = f(w*v)$.  If $\{v\ |\ w*v\in M\}$ is empty, then the result is $(\epsilon, \chi_{f\circ\pi_M(w)})$.  Let $|[\texttt{tails}|](r)\equiv |[\texttt{getTree}|](r, 0)$ and $|[\texttt{heads}|](r)\equiv |[\texttt{getTree}|](r, 1)$.
+
+%\begin{lemma}
+%The function used in abstraction, 
+%$d\mapsto |[H,x:u\triangleright M:v|](\rho[x\mapsto d])$ is Scott continuous for any $M$.
+%\end{lemma}
+
+\begin{lemma}
+\emph{(Substitution)} If $H|-N:s$ and $H,x:s|-M:t$, then
+\[ |[H\triangleright M[N/x]:t|]\rho = |[H,x:s\triangleright M:t|]\rho[x\mapsto (|[H\triangleright N:s|]\rho)] \].
+\end{lemma}
+
+\begin{proof}
+The proof is by induction on the structure of $M$.  If $M$ is a simply a natural number or boolean, the proof is immediate.  
+Let $e=|[H\triangleright N:s|]\rho$.  Consider the case where $M\equiv x$.  Then $s\equiv t$ and
+
+\begin{align*}
+|[H\triangleright x[N/x]:t|]\rho &= |[H \triangleright N:t|]\rho \\
+&= \rho[x\mapsto e](x) \\
+&= |[H,x:s\triangleright M:t|]\rho[x\mapsto e]
+\end{align*}
+
+If $M\equiv y$, where $y$ is distinct from $x$, then
+
+\begin{align*}
+|[H\triangleright y[N/x]:t|]\rho &= |[H \triangleright y:t|]\rho \\
+&= \rho(y) \\
+&= |[H,x:s\triangleright y:t|]\rho[x\mapsto e]
+\end{align*}
+
+Let $M\equiv \pred(M')$.  Then
+\begin{align*}
+|[H\triangleright \pred(M')[N/x]|]\rho &= |[\pred\!\!|]^{\dagger}
+(|[H\triangleright M'[N/x]|]\rho) \\
+&= |[\pred\!\!|]^{\dagger}(|[H,x \triangleright M'|]\rho[x\mapsto e]) \\
+&= |[H,x \triangleright \pred(M')|]\rho[x\mapsto e]
+\end{align*}
+
+The cases for $\Succ$and $\zero$are similar.  If $M\equiv \lambda y.M'$, then
+\begin{align*}
+|[H\triangleright (\lambda y.M')[N/x]|]\rho &= 
+|[H\triangleright \lambda y.M'[N/x]|]\rho \\
+&= (d\mapsto |[H,y\triangleright M'[N/x]|]\rho[y\mapsto d]) \\
+&= (d\mapsto |[H,x,y\triangleright M'|](\rho[x\mapsto e][y\mapsto d])) \\
+&= |[H,x\triangleright \lambda y.M'|](\rho[x\mapsto e])
+\end{align*}
+
+If $M\equiv M'(N')$ then
+\begin{align*}
+|[H\triangleright (M'(N'))[N/x]|]\rho &= 
+|[\texttt{ev}^{\dagger}|](|[H\triangleright M'[N/x]|]\rho,
+|[H\triangleright N'[N/x]|]\rho) \\
+&= |[\texttt{ev}^{\dagger}|](|[H,x\triangleright M'|]\rho[x\mapsto e],
+|[H,x\triangleright N'|]\rho[x\mapsto e]) \\
+&= |[H,x\triangleright M'(N')|]\rho[x\mapsto e]
+\end{align*}
+
+If $M\equiv \mu y.M'$ then
+\begin{align*}
+|[H\triangleright \mu y.M'[N/x]|]\rho &= 
+\texttt{fix}(d\mapsto |[H,y\triangleright M'[N/x]|]
+(\rho[y\mapsto d]) \\
+&= \texttt{fix}(d\mapsto |[H,x,y\triangleright M'|]
+(\rho[x\mapsto e][y\mapsto d]) \\
+&= |[H,x\triangleright \mu y.M'|](\rho[x\mapsto e])
+\end{align*}
+
+If $M\equiv \If B \;\then M' \;\Else N'$ then
+\begin{align*}
+& |[H\triangleright (\If B \;\then M' \;\Else N')[N/x]|]\rho \\
+&= 
+|[\If\!\!^{\dagger}|](|[H\triangleright B[N/x]|]\rho, |[H\triangleright M'[N/x]|]\rho, |[H\triangleright N'[N/x]|]\rho) \\
+&= |[\If\!\!^{\dagger}|](|[H,x\triangleright B|]\rho[x\mapsto e], |[H,x\triangleright M'|]\rho[x\mapsto e], |[H,x\triangleright N'|]\rho[x\mapsto e]) \\
+&= |[H,x\triangleright (\If B \;\then M' \;\Else N')|]\rho[x\mapsto e]
+\end{align*}
+
+Finally, if $M\equiv \Node(L,R)$, then
+\begin{align*}
+|[H\triangleright \Node(L,R)[N/x]|]\rho &= 
+|[\Node\!\!|](|[H\triangleright L[N/x]|]\rho, |[H\triangleright R[N/x]|]\rho) \\
+&= |[\Node\!\!|](|[H,x\triangleright L|]\rho[x\mapsto e], |[H,x\triangleright R|]\rho[x\mapsto e]) \\
+&= |[H,x\triangleright \Node(L,R)|]\rho[x\mapsto e]
+\end{align*}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{theorem}
+\emph{(Soundness)} If $|-(H\triangleright M,bs=N:t, bs)$, 
+then $|[H\triangleright M:t, bs|] = |[H\triangleright N:t, bs|]$.
+\end{theorem}
+
+\begin{proof}
+The proof is by induction on the height of the derivation of 
+$|-(H \triangleright M = N:t)$.  First the base cases have to be checked. 
+\begin{description}
+\item[{[}PredZero{]}] \hfill \\ 
+If $M\equiv \pred(0)$ and $N\equiv \Leaf 0$, then 
+\begin{align*}
+|[\pred(0)|]\rho &= |[\pred\!\!|]^{\dagger}((\epsilon, \chi_0)) \\
+&= |[\pred\!\!|]^{\dagger}(\eta(0)) \\
+&= |[\pred\!\!|](0) \\
+&= (\epsilon, \chi_0) \\
+&= |[\Leaf 0|]\rho
+\end{align*}
+The cases from [PredSucc], [ZeroZero], [ZeroSucc], and [Succ] are similar.
+\newpage  
+\item[{[}Mu{]}] \hfill \\ 
+Suppose $M\equiv \mu x.M'$ and $N\equiv M'[\mu x.M'/x]$.  
+Let $f(d) = |[H,x\triangleright M'|]\rho[x\mapsto d]$.  Then
+\begin{align*}
+|[H\triangleright \mu x.M'|]\rho &= \texttt{fix}(f) \\
+&= f(\texttt{fix}(f)) \\
+&= |[H,x\triangleright M'|]\rho[x\mapsto |[H\triangleright \mu x.M'|]\rho] \\ 
+&= |[H\triangleright M'[\mu x.M'/x]|]\rho
+\end{align*}
+where the last equality follows from the Substitution lemma. 
+\item[{[}Node{]}] \hfill \\ 
+Suppose $M\equiv \Node(L,R)$ and $N\equiv \Node(L',R')$, and their equality is derived from the equality of $L$ and $L'$ and the equality of $R$ and $R'$.  By the induction hypothesis, 
+$|[L|]\rho = |[L'|]\rho$ and $|[R|]\rho = |[R'|]$.  Thus,
+\begin{align*}
+|[\Node(L,R)|]\rho &= |[\Node\!\!|](|[L|]\rho, |[R|]\rho) \\
+&= |[\Node\!\!|](|[L'|]\rho, |[R'|]\rho) \\
+&= |[\Node(L',R')|]\rho
+\end{align*}
+\item[{[}Lambda{]}] \hfill \\ 
+Suppose $M\equiv \lambda x.M', bs$ and $N\equiv \lambda x.N', bs$.  By induction, $|[M'|] = |[N'|]$  Thus
+\begin{align*}
+|[H\triangleright \lambda x.M', bs|]\rho &= 
+(d\mapsto |[\texttt{getTree}|](|[H,x\triangleright M'|], bs)
+(\rho[x\mapsto d])) \\
+&= (d\mapsto |[\texttt{getTree}|](|[H,x\triangleright N'|], bs)
+(\rho[x\mapsto d])) \\
+&= |[H\triangleright \lambda x.N', bs|]\rho
+\end{align*}
+\item[{[}Beta{]}] \hfill \\ 
+Suppose that $M\equiv (\lambda x.M')(\Leaf N'), bs$ and that 
+$N\equiv getTree(M'[N'/x],bs)$.  Now let ${f_{bs}\equiv (d\mapsto |[\texttt{getTree}|](|[H,x\triangleright M'|](\rho[x\mapsto d]), bs))}$.  Then
+\begin{align*}
+|[H\triangleright (\lambda x.M')(\Leaf N'),bs|]\rho &= 
+|[\texttt{ev}^\dagger|](|[H\triangleright \lambda x.M', bs|]\rho, 
+|[H\triangleright \Leaf N'|]\rho) \\
+&= |[\texttt{ev}^\dagger|]((\epsilon, f_{bs}), 
+|[H\triangleright \Leaf N'|]\rho) \\
+&= (\lambda g.g^{\dagger}(|[H\triangleright \Leaf N'|]\rho))^{\dagger}
+((\epsilon, f_{bs})) \\
+&= (\lambda g.g^{\dagger}(|[H\triangleright \Leaf N'|]\rho))
+(f_{bs}) \\
+&= f_{bs}^{\dagger}
+(|[H\triangleright \Leaf N'|]\rho) \\
+&= |[\texttt{getTree}|](|[H\triangleright M'[N'/x]|], bs)
+\end{align*}
+\item[{[}Eta{]}] \hfill \\ 
+Suppose $M\equiv \lambda x.M'(x), bs$ and 
+$N\equiv getTree(M, bs)$
+\begin{align*}
+|[\lambda x.M'(x), bs|]\rho &= 
+|[\texttt{ev}^{\dagger}|](|[\lambda x.M', bs|]\rho, |[x|]\rho) \\
+&= |[\texttt{ev}^{\dagger}|]
+((\epsilon, (d\mapsto |[\texttt{getTree}|](|[H,x\triangleright M|], bs)(\rho[x\mapsto d]))), \rho(x)) \\
+&= (d\mapsto |[\texttt{getTree}|](|[H,x\triangleright M|], bs)(\rho[x\mapsto d]))(\rho(x)) \\
+&= |[\texttt{getTree}|](|[H,x\triangleright M|], bs)
+(\rho[x\mapsto \rho(x)]) \\
+&= |[\texttt{getTree}|](|[H\triangleright M|], bs)\rho 
+\end{align*}
+\item[{[}IfTrue{]}] \hfill \\ 
+Suppose $M\equiv \If\true\then M'\;\Else N'$ and $N\equiv M'$.  Then
+\begin{align*}
+|[\If\true\then M'\;\Else N'|]\rho &= 
+|[\If\!\!^{\dagger}|]((\epsilon, \chi_{\true\!\!}), |[M'|]\rho, |[N'|]\rho) \\
+&= |[\If\!\!|]^{\dagger}((\epsilon, \chi_{\true\!\!}))(|[M'|]\rho, |[N'|]\rho) \\
+&= |[\If\!\!|]^{\dagger}(\eta(\true\!\!))(|[M'|]\rho, |[N'|]\rho) \\
+&= |[\If\!\!|](\true\!\!)(|[M'|]\rho, |[N'|]\rho) \\
+&= |[M'|]\rho
+\end{align*}
+The [IfFalse] is case is identical.  
+\item[{[}IfNode{]}] \hfill \\ 
+Suppose that $M\equiv \If \Node(L,R)\;\then M'\;\Else N',bs$ and that  
+$N\equiv \Node(X,Y)$.  Now let $m_{bs} = |[\texttt{getTree}|](|[M'|], bs)\rho$ and $n_{bs} = |[\texttt{getTree}|](|[N'|], bs)\rho$.
+\begin{align*}
+|[\If \Node(L,R)\;\then M'\;\Else N',bs|]\rho &= 
+|[\texttt{if}^{\dagger}|](|[\Node(L,R)|]\rho, m_{bs}, n_{bs}) \\
+&= (|[\texttt{if}|](m_{bs}, n_{bs}))^{\dagger}(|[\Node\!\!|](|[L|]\rho,|[R|]\rho)) \\
+\end{align*}
+Let $|[L|]\rho \equiv (P,g)$.  For the first component, the words that start with 0 are
+\begin{displaymath}
+\bigcup_{w\in \pi_1(|[L|]\rho)} \Min \ua (0*w) \;\cap
+\ua \pi_1\circ (|[\texttt{if}|](m_{bs}, n_{bs}))\circ g(w))
+\end{displaymath}
+Bringing a zero to the front leaves
+\begin{displaymath}
+0 * \bigcup_{w\in \pi_1(|[L|]\rho)} \Min \ua w \;\cap
+\ua \pi_1\circ |[\texttt{tails}|]((|[\texttt{if}|](m_{bs}, n_{bs}))\circ g(w))
+\end{displaymath}
+For the second component:
+\begin{align*}
+\pi_2((|[\texttt{if}|](m_{bs}, n_{bs}))^{\dagger}(|[\Node\!\!|](|[L|]\rho,|[R|]\rho)))(0*z) &= (\pi_2\circ (|[\text{if}|](m_{bs}, n_{bs}))\circ g(z))(z)
+\end{align*}
+
+By induction, $|[\If L\;\then M'\;\Else N', bs+\false\!\!|] = |[X|]$ and the first component of $|[\Node(X,Y)|]\rho$ is 
+$0*\pi_1(|[X|]\rho)\cup 1*\pi_1(|[Y|]\rho)$. 
+\begin{align*}
+0*\pi_1(|[X|]\rho) &= 
+0 * \pi_1(|[\If L\;\then M'\;\Else N', bs+\false\!\!|]\rho) \\
+&= 0 * \pi_1((|[\texttt{if}|](m_{bs+\false\!\!}, n_{bs+\false\!\!}))^{\dagger}(|[L|]\rho)) \\
+&= 0 * \bigcup_{w\in \pi_1(|[L|]\rho)} \Min \ua w \;\cap
+\ua \pi_1\circ (|[\texttt{if}|](m_{bs+\false\!\!}, n_{bs+\false\!\!}))\circ g(w) \\
+&= 0 * \bigcup_{w\in \pi_1(|[L|]\rho)} \Min \ua w \;\cap
+\ua \pi_1\circ |[\texttt{tails}|]((|[\texttt{if}|](m_{bs}, n_{bs}))\circ g(w))
+\end{align*}
+For the second component,
+\begin{align*}
+\pi_2 (|[\Node(X,Y)|]\rho) (0*z) &= \pi_2 (|[X|]\rho) (z) \\
+&= \pi_2 (|[\If L\;\then M'\;\Else N', bs+\false\!\!|]\rho)(z) \\
+&= \pi_2 ((|[\texttt{if}|](m_{bs}, n_{bs}))^{\dagger}(P,g)(z) \\
+&= (\pi_2\circ (|[\texttt{if}|](m_{bs}, n_{bs})) \circ g(z))(z)
+\end{align*}
+
+\item[{[}LeafNode{]}] \hfill \\ 
+Suppose that $M\equiv (\lambda x.M')(\Node(L,R))$ and that $N\equiv \Node(X,Y)$.   Similar to above, let ${f_{bs}\equiv (d\mapsto |[\texttt{getTree}|](|[H,x\triangleright M'|](\rho[x\mapsto d]), bs))}$.  Now
+\begin{align*}
+|[(\lambda x.M')(\Node(L,R)), bs|]\rho &=
+|[\texttt{ev}^\dagger|](|[(\lambda x.M'), bs|]\rho, 
+|[\Node(L,R)|]\rho) \\
+&= |[\texttt{ev}^\dagger|]((\epsilon, f_{bs}), 
+|[\Node\!\!|](|[L|]\rho, |[R|]\rho)) \\
+&= (\lambda g.g^{\dagger}(|[\Node\!\!|](|[L|]\rho, |[R|]\rho)))(f_{bs}) \\
+&= f_{bs}^{\dagger}
+(|[\Node\!\!|](|[L|]\rho, |[R|]\rho))
+\end{align*}
+Now let's consider the first component, looking only at words beginning with $0$ (which $L$ but not $R$ determines). 
+\begin{displaymath}
+\bigcup_{w\in \pi_1(|[L|]\rho)} \Min \ua (0*w) \;\cap 
+\ua \pi_1\circ f_{bs} \circ (\pi_2(|[L|]\rho))(w)
+\end{displaymath}
+Bringing a zero out to the front leaves:
+\begin{displaymath}
+0 * \bigcup_{w\in \pi_1(|[L|]\rho)} \Min \ua w \;\cap 
+\ua \pi_1\circ |[\texttt{tails}|](f_{bs} \circ (\pi_2(|[L|]\rho))(w))
+\end{displaymath}
+Let $|[L|]\rho \equiv (P,g)$.  For the second component:
+\begin{align*}
+\pi_2 (f_{bs}^{\dagger}
+(|[\Node\!\!|](|[L|]\rho, |[R|]\rho)))(0*z) &= 
+(\pi_2\circ f_{bs}\circ g(z))(0*z) \\
+&= (\pi_2\circ |[\texttt{tails}|](f_{bs}\circ g(z)))(z) 
+\end{align*}
+By induction, $|[(\lambda x.M')(L), bs+\false\!\!|] = |[X|]$ and the first component of $|[\Node(X,Y)|]\rho$ is 
+${0*\pi_1(|[X|]\rho)\cup 1*\pi_1(|[Y|]\rho)}$.
+
+\begin{align*}
+0*\pi_1(|[X|]\rho) &= 0*\pi_1(|[(\lambda x.M')(L), bs+\false\!\!|]\rho) \\
+&= 0*\pi_1(f_{bs+\false\!\!}^{\dagger}
+(|[L|]\rho)) \\
+&= 0*\!\!\!\!\bigcup_{w\in \pi_1(|[L|]\rho)} \!\!\!\!\Min \ua w \;\cap 
+\ua \pi_1\circ f_{bs+\false\!\!} \circ (\pi_2(|[L,|]\rho))(w) \\
+&= 0*\!\!\!\!\bigcup_{w\in \pi_1(|[L|]\rho)} \!\!\!\!\Min \ua w \;\cap 
+\ua \pi_1\circ |[\texttt{tails}|](f_{bs} \circ (\pi_2(|[L,|]\rho))(w))
+\end{align*}
+For the second component: \vspace{-3 mm}
+\begin{align*}
+\pi_2 (|[\Node(X,Y)|]\rho) (0*z) &=
+\pi_2 (|[X|]\rho) (z) \\
+&= \pi_2 (f_{bs+\false\!\!}^{\dagger}(|[L|]\rho))(z) \\ 
+&= (\pi_2\circ f_{bs+\false\!\!}\circ g(z))(z) \\
+&= (\pi_2\circ |[\texttt{tails}|](f_{bs}\circ g(z)))(z) 
+\end{align*}
+The words beginning with $1$ are similar, using $R$ instead of $L$.
+\item[{[}NodeLeaf{]}] \hfill \\ 
+Suppose that $M\equiv \Node(F,G)(\Leaf N')$ and $N\equiv \Node(X,Y)$.  Then \vspace{-3 mm}
+\begin{align*}
+|[\Node(F,G)(\Leaf N')|]\rho &= 
+|[\texttt{ev}^\dagger|](|[(\Node(F,G), bs|]\rho, 
+|[\Leaf N'|]\rho) \\
+&= |[\texttt{ev}^\dagger|](|[\Node\!\!|](|[F,bs|]\rho, |[G,bs|]\rho),
+(\epsilon, \chi_{\underline{n}})) \\
+&= (\lambda g.g^{\dagger}(\epsilon, \chi_{\underline{n}}))^{\dagger}
+(|[\Node\!\!|](|[F,bs|]\rho, |[G,bs|]\rho)) \\
+&= (\lambda g.g(\underline{n}))^{\dagger}
+(|[\Node\!\!|](|[F,bs|]\rho, |[G,bs|]\rho))\\[-10 mm]
+\end{align*}
+Now consider the words beginning with $0$ of the first component.
+\begin{displaymath}
+\bigcup_{w\in \pi_1(|[F,bs|]\rho)} \Min \ua (0*w) \;\cap 
+\ua \pi_1\circ (\pi_2(|[F,bs|]\rho)(w))(\underline{n})
+\end{displaymath}
+Bringing a zero to the front leaves:
+\begin{displaymath}
+0 * \bigcup_{w\in \pi_1(|[F,bs|]\rho)} \Min \ua w \;\cap 
+\ua \pi_1\circ |[\texttt{tails}|](\pi_2(|[F,bs|]\rho)(w))(\underline{n})
+\end{displaymath}
+Let $|[F,bs|]\rho \equiv (P,f_{bs})$.  For the second component:
+
+\begin{align*}
+\pi_2 (|[\Node(F,G)(\Leaf N')|]\rho) (0*z) &= 
+(\pi_2((f_{bs}(z))(\underline{n}))(0*z) \\
+&= (\pi_2(|[\texttt{tails}|]((f_{bs}(z))(\underline{n})))(z))
+\end{align*}
+By induction, $|[F(\Leaf N'), bs+\false\!\!|] = |[X|]$. \vspace{-3 mm}
+\begin{align*}
+0*\pi_1(|[X|]\rho) &= 0*\pi_1(|[F(\Leaf N'),bs+\false\!\!|]\rho) \\
+&= 0* \pi_1((\lambda g.g(\underline{n}))^{\dagger}
+(|[F,bs+\false\!\!|]\rho) \\
+&= 0*\!\!\!\!\bigcup_{w\in\pi_1(|[F,bs+\false\!\!|]\rho)}\!\!\!\!
+\Min \ua w \;\cap 
+\ua \pi_1\circ (\pi_2(|[F,bs+\false\!\!|]\rho)(w))(\underline{n}) \\
+&= 0*\!\!\!\!\bigcup_{w\in\pi_1(|[F,bs|]\rho)}\!\!\!\!
+\Min \ua w \;\cap 
+\ua \pi_1\circ |[\texttt{tails}|](\pi_2(|[F,bs|]\rho)(w))(\underline{n}) 
+\end{align*}
+For the second component:\vspace{-3 mm}
+\begin{align*}
+\pi_2 (|[\Node(X,Y)|]\rho) (0*z) &=
+\pi_2 (|[X|]\rho) (z) \\
+&= (\pi_2((f_{bs+\false\!\!}(z))(\underline{n}))(0*z) \\
+&= (\pi_2(|[\texttt{tails}|]((f_{bs}(z))(\underline{n})))(z))\\[-10 mm]
+\end{align*}
+\item[{[}NodeNode{]}] \hfill \\ 
+Suppose $M\equiv (\Node(F,G))(\Node(L,R))$ and $N\equiv \Node(X,Y)$.\vspace{-3 mm}
+\begin{align*}
+|[\Node(F,G)(\Node(L,R))|]\rho &= 
+|[\texttt{ev}^\dagger|](|[(\Node(F,G), bs|]\rho, 
+|[\Node(L,R)|]\rho) \\
+&= (\lambda g.g^{\dagger}
+(|[\Node\!\!|](|[L|]\rho,|[R|]\rho)))^{\dagger}
+(|[\Node\!\!|](|[F,bs|]\rho, |[G,bs|]\rho))\\[-10 mm]
+\end{align*}
+Now consider the words beginning with $0$ in the first component:
+\begin{displaymath}
+\bigcup_{w\in \pi_1(|[F,bs|]\rho)} \Min \ua (0*w) \;\cap 
+\ua \pi_1\circ (\pi_2(|[F,bs|]\rho)(w))^{\dagger}
+(|[\Node\!\!|](|[L|]\rho,|[R|]\rho))
+\end{displaymath}
+Since we are only considering words beginning with $0$, we can do the same for the second Kleisli extension to get
+\begin{displaymath}
+\bigcup_{w\in \pi_1(|[F,bs|]\rho)} \Min \ua (0*w) \;\cap 
+\ua (\bigcup_{z\in \pi_1(|[L|]\rho)} \Min \ua (0*z) \;\cap 
+\ua (\pi_1\circ (\pi_2 (|[F,bs|]\rho)(w))(z)))
+\end{displaymath}
+Bringing a zero to the front gives:
+\begin{displaymath}
+0 * \bigcup_{w\in \pi_1(|[F,bs|]\rho)} \Min \ua w \;\cap 
+\ua (\bigcup_{z\in \pi_1(|[L|]\rho)} \Min \ua z \;\cap 
+\ua (\pi_1\circ |[\texttt{tails}|](\pi_2 (|[F,bs|]\rho)(w))(z)))
+\end{displaymath}
+By induction, $|[F(L), bs+\false\!\!|] = |[X|]$.
+\begin{align*}
+0*\pi_1(|[X|]\rho) &= 0*\pi_1(|[F(L),bs+\false\!\!|]\rho) \\
+&= 0*\pi_1((\lambda g.g^{\dagger}
+(|[L|]\rho))^{\dagger}
+(|[F,bs+\false\!\!|]\rho)) \\
+&= 0*\!\!\!\!\!\!\!\!\!\bigcup_{w\in \pi_1(|[F,bs+\false\!\!|]\rho)}\!\!\!\!\!\!\!\!\!
+\Min \ua w \;\cap \ua \pi_1 \circ 
+(\pi_2(|[F,bs+\false\!\!|]\rho)(w))^{\dagger}(|[L|]\rho) \\
+&= 0*\!\!\!\!\!\!\!\!\!\bigcup_{w\in \pi_1(|[F,bs+\false\!\!|]\rho)}\!\!\!\!\!\!\!\!\!
+\Min \ua w \;\cap \ua
+(\!\!\!\bigcup_{z\in \pi_1(|[L|]\rho)}\!\!\! \Min \ua z \;\cap \ua
+(\pi_1 \circ \pi_2(|[F,bs+\false\!\!|]\rho)(w))(z))) \\
+&= 0*\!\!\!\!\!\!\!\!\!\bigcup_{w\in \pi_1(|[F,bs|]\rho)}\!\!\!\!\!\!\!
+\Min \ua w \;\cap \ua
+(\!\!\!\bigcup_{z\in \pi_1(|[L|]\rho)}\!\!\! \Min \ua z \;\cap \ua
+(\pi_1 \circ |[\texttt{tails}|](\pi_2(|[F,bs|]\rho)(w))(z)))
+\end{align*}
+The second component is similar to the previous two cases, but much messier since there is a nesting of the Kleisli extensions.
+
+All of the [Cong] cases are very simple equations.
+\end{description}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{corollary}
+If $M->N$, then $|[M|] = |[N|]$.
+\end{corollary}
+
+\begin{corollary}
+If $M\Downarrow V$, then $|[M|] = |[V|]$.
+\end{corollary}
+
+\begin{theorem}
+\emph{(Adequacy)} If $M$ is a closed term of ground type and $|[M|] = |[V|]$ for a value $V$, then $M\Downarrow V$.
+\end{theorem}
+
+\begin{proof}
+The proof is by induction on the structure of $V$.  If $V$ is a leaf (no nodes), then $V$ is the embedding of a PCF term into rPCF.  $|[M|] = |[V|] \equiv (\epsilon, \chi_v)$ for some $v$ and there is a corresponding term $M'$ in PCF such that $|[M'|] = v$.  Since adequacy is proven for the semantics of PCF, $M' \Downarrow V'$ and thus, $M \Downarrow V$ in rPCF.  Now if $V$ is of the form $\Node(L,R)$, where $|[M|] = |[\Node(L,R)|]$, then $|[\texttt{getTree}|](|[M|], \false\!\!) = L$ and $|[\texttt{getTree}|](|[M|], \true\!\!) = R$.  By induction $getTree(M, \false\!\!) \Downarrow L$ and $getTree(M, \true\!\!) \Downarrow R$.  Thus, $M \Downarrow \Node(L,R)$.
+\hfill $\blacksquare$
+\end{proof}
+

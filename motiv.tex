@@ -1,0 +1,42 @@
+%\chapter{Motivation}
+\section{Motivation} \label{motiv}
+
+An important aspect of domain theory is the existence of least fixed points of Scott continuous functions, which are used to model recursion.  A typical example is the factorial function:
+
+\begin{verbatim}
+fact(n) = if (n==0) then 1 else n*fact(n-1)
+\end{verbatim}
+
+Consider the domain $[\mathbb{N}_\bot \rightarrow \mathbb{N}_\bot]$, where $\mathbb{N}_\bot$ denotes the flat natural numbers with a bottom element.  Functions of this type may be viewed as a sequence of natural numbers (it will be assumed that a function sends the bottom element to itself unless stated otherwise).  The identity function can be viewed as $(0,1,2,3,\ldots)$.  Now define the Scott continuous function $F:[\mathbb{N}_\bot\rightarrow\mathbb{N}_\bot]\rightarrow[\mathbb{N}_\bot\rightarrow\mathbb{N}_\bot]$ by:
+
+\[
+	F(f)(n) = \begin{cases}
+		\bot & \text{if } n=\bot \\
+		1 & \text{if } n=0 \\
+		n \cdot f(n-1) & \text{else}
+	\end{cases}
+\]
+where $n \cdot f(n-1) = \bot$ if $f(n-1) = \bot$.
+The factorial function is simply the least fixed point of $F$ (and the only fixed point).  Repeatedly applying $F$ to bottom, which is $(\bot,\bot,\bot,\ldots)$, forms a chain of finite functions, whose supremum is the least fixed point -- the factorial function.  Though the entire function cannot be evaluated in finite time, when a specific value is needed, it can be obtained by iterating only enough so that the value is defined.  For $F$, $F(\bot, \bot, \ldots) = (1, \bot, \ldots)$.  $F^2(\bot, \bot, \ldots) = (1, 1, \bot, \ldots), F^3(\bot, \bot, \ldots) = (1,1,2,\bot, \ldots)$, and so on.
+
+Now consider the following randomized function:
+
+\begin{verbatim}
+f(n) = if (n==0) then 0 
+       else if (coin()==1) then (1 + f(n-1))
+       else f(n-1)
+\end{verbatim}
+Here \texttt{coin} is just a function that randomly returns either 0 or 1.  Thus the function \texttt{f} counts the number of heads in $n$ coin flips (where heads $\equiv 1$).  This is no longer a deterministic function; each random choice creates a branching of possible outcomes.  This function can be represented by an infinite tree of binary words, where each node contains a function of type $[\mathbb{N}_\bot \rightarrow \mathbb{N}_\bot]$.  The empty word, $\epsilon$, corresponds to not flipping the coin at all and is mapped to $(0,\bot,\bot,\ldots)$, since there can only be zero heads in zero coin flips.  For every other $n$, it returns $\bot$ since $n$ coin flips have not been made yet.  The word 0 means that the coin was flipped once and landed tails, so this will be mapped to $(0,0,\bot,\bot,\ldots)$.  Similarly, the word 1 means heads and is mapped to $(0,1,\bot,\bot,\ldots)$.  The tree can be built up incrementally in this fashion, and these finite trees have a supremum which will represent the entire function.  But of course, for any particular $n$, a concrete representation can be found by using just the $n+1$ lowest levels of the tree.  The beginning of this tree is pictured in Figure \ref{fig:cointree}. 
+
+Similar to the deterministic case, where a recursive function is represented as the supremum of a chain of finite partial functions (given as a fixed point of some functional), the motivation behind the following monad is to provide a setting where a recursive, randomized function can be realized as the supremum of finite binary trees of partial functions.
+
+\begin{figure} \label{fig:cointree}
+\[
+\xymatrix@!0@C=4pc{
+(0,0,0,\bot,\ldots) & & (0,0,1,\bot,\ldots) & & (0,1,1,\bot,\ldots) & & (0,1,2,\bot,\ldots) \\
+& (0,0,\bot,\bot,\ldots)\ar@{-}[ul]\ar@{-}[ur] & & & & (0,1,\bot,\bot,\ldots)\ar@{-}[ul]\ar@{-}[ur] \\
+& & & (0,\bot,\bot,\ldots)\ar@{-}[ull]\ar@{-}[urr] \\
+}
+\]
+\caption{Flipping a coin $n$ times}
+\end{figure}

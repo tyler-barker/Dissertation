@@ -1,0 +1,480 @@
+%\chapter{More About the Kleisli Extension}
+
+\section{More About the Kleisli Extension}
+
+\subsection{Dependent Choice}
+
+Consider a function $f:\mathbb{N}->RC(\mathbb{N})$ that takes a natural number, $n$, and flips a coin twice to determine what to do with that number.  If two tails are flipped, the number is left alone.  If two heads are flipped, the number is squared.  If tails, then heads appear, then the number is doubled, and if heads, then tails appear, the number is incremented by $1$.  Thus, for a given $n$, $f(n)$ is equal to the following tree:
+\[
+\begin{xy}
+(0,30)*+{n} = "v4";%
+(30,30)*+{n*2} = "v5";%
+(50,30)*+{n+1} = "v6";%
+(80,30)*+{n*n} = "v7";%
+(15,15)*{} = "v8";%
+(65,15)*{} = "v9";%
+(40,0)*{} = "v10";%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+\end{xy}
+\]
+
+Now if a Klesili extension is applied to $f$, it can take as an argument something of type $RC(\mathbb{N})$.  Giving it $(\epsilon, \chi_n)$, where no coin flips are made, will have the same behavior as $f(n)$ (this is the first monad law).  However, suppose there is a coin flip to choose $n$, so that $n=1$ if the coin is tails and $n=2$ if the coin is heads.  Then we apply $f$ to this random choice of $n$, so we have a random choice of actions to perform on a random choice of $n$.  If the choices are made independently, then the resulting random choice would look like:
+\[
+\begin{xy}
+(0,45)*+{1} = "v1";%
+(20,45)*+{2} = "v2";%
+(40,45)*+{2} = "v3";%
+(60,45)*+{1} = "v4";%
+(80,45)*+{2} = "v5";%
+(100,45)*+{4} = "v6";%
+(120,45)*+{3} = "v7";%
+(140,45)*+{4} = "v8";%
+(10,30)*{} = "v9";%
+(50,30)*{} = "v10";%
+(90,30)*{} = "v11";%
+(130,30)*{} = "v12";%
+(30,15)*{} = "v13";%
+(110,15)*{} = "v14";%
+(70,0)*{} = "v15";%
+{\ar@{-} "v9"; "v1"};%
+{\ar@{-} "v9"; "v2"};%
+{\ar@{-} "v3"; "v10"};%
+{\ar@{-} "v10"; "v4"};%
+{\ar@{-} "v11"; "v5"};%
+{\ar@{-} "v11"; "v6"};%
+{\ar@{-} "v12"; "v7"};%
+{\ar@{-} "v12"; "v8"};%
+{\ar@{-} "v13"; "v9"};%
+{\ar@{-} "v13"; "v10"};%
+{\ar@{-} "v14"; "v11"};%
+{\ar@{-} "v14"; "v12"};%
+{\ar@{-} "v15"; "v13"};%
+{\ar@{-} "v15"; "v14"};%
+\end{xy}
+\]
+
+However, this is not how our Kleisli extension behaves.  Instead, $f$ assumes that its first coin flip will be the same as the one used to choose $n$.  If $1$ is chosen, then the result would be $f(1\ |\  \mathrm{first\;flip\;is\;tails})$, so only one more coin flip would be made to either leave $1$ alone or double it.  Similarly, if $2$ is chosen, the result would be $f(2\ |\ \mathrm{first\;flip\;is\;heads})$, so the one remaining coin flip would determine if $2$ is incremented by one or squared.  The resulting tree would be as follows:
+\[
+\begin{xy}
+(0,30)*+{1} = "v4";%
+(30,30)*+{2} = "v5";%
+(50,30)*+{3} = "v6";%
+(80,30)*+{4} = "v7";%
+(15,15)*{} = "v8";%
+(65,15)*{} = "v9";%
+(40,0)*{} = "v10";%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+\end{xy}
+\]
+
+If probabilities are brought into the picture, then the difference between this Kleisli extension and the first Kleisli extension would be that in the first, the probabilistic choices would be independent, but in our Kleisli extension, some probabilistic choices would be dependent on other prior choices.
+
+\subsection{Lifting of Binary Operations}\label{kleislilift}
+
+The Kleisli extension of a monad $T$ can be hard to think about intuitively since we normally do not work with functions from $D$ to $T(E)$.  However, the Kleisli extension is important in lifting binary operations on the underlying structures to binary operations on the monadic structures.  If we have a binary operation $*: D \times E \to F$, the Kleisli extension lifts this to the binary operation $*^\dagger : T(D) \times T(E) \to T(F)$.  This is achieved by setting 
+$*^\dagger = (\lambda a. T(\lambda b. a * b))^\dagger$.
+
+Now consider the monad of randomized choice, where our underlying domain is the natural numbers (with the usual ordering, with infinity on top).  How should we lift a binary operation like multiplication to operate on a random choice of natural numbers?  Consider two trees:
+\[
+\begin{xy}
+(0,30)*+{2} = "v4";%
+(20,30)*+{3} = "v5";%
+(10,15)*{} = "v8";%
+(40,15)*+{1} = "v9";%
+(25,0)*{} = "v10";%
+(95,0)*{} = "v11";%
+(80,15)*+{4} = "v12";%
+(110,15)*+{5} = "v13";%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};%
+{\ar@{-} "v11"; "v12"};%
+{\ar@{-} "v11"; "v13"};%
+\end{xy}
+\]
+
+The first attempt at the Kleisli extension would perform the random choices of numbers sequentially and multiply the two random numbers.  The resulting tree would be as follows: 
+\[
+\begin{xy}
+(0,45)*+{8} = "v1";%
+(20,45)*+{10} = "v2";%
+(40,45)*+{12} = "v3";%
+(60,45)*+{15} = "v4";%
+(10,30)*{} = "v9";%
+(50,30)*{} = "v10";%
+(90,30)*+{4} = "v11";%
+(130,30)*+{5} = "v12";%
+(30,15)*{} = "v13";%
+(110,15)*{} = "v14";%
+(70,0)*{} = "v15";%
+{\ar@{-} "v9"; "v1"};%
+{\ar@{-} "v9"; "v2"};%
+{\ar@{-} "v3"; "v10"};%
+{\ar@{-} "v10"; "v4"};%
+{\ar@{-} "v13"; "v9"};%
+{\ar@{-} "v13"; "v10"};%
+{\ar@{-} "v14"; "v11"};%
+{\ar@{-} "v14"; "v12"};%
+{\ar@{-} "v15"; "v13"};%
+{\ar@{-} "v15"; "v14"};%
+\end{xy}
+\]
+
+The Kleisli extension presented here behaves differently.  Instead of making the random choices sequentially, it makes them concurrently.  When a random bit is generated, it gets sent to both input trees.  In the examples trees above, if the first bit is a $1$, then the first tree will choose $1$, and the second tree will choose $5$.  If the first bit is a $0$, then the second tree will choose $4$, but the first tree will still need another bit to choose between $2$ and $3$.  The resulting tree is as follows:
+\[
+\begin{xy}
+(-5,30)*+{8} = "v4";%
+(25,30)*+{12} = "v5";%
+(10,15)*{} = "v8";%
+(40,15)*+{5} = "v9";%
+(25,0)*{} = "v10";%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};%
+\end{xy}
+\]
+
+It may seem odd that not all random choices appear in the resulting tree (since a random choice is applied to both arguments simultaneously), but for randomized algorithms, this is not a problem.  Randomized algorithms are used to find a specific output that should not change based on the random choices made.  For example, we may be interested in finding a specific real number in a known interval, such as a root of a polynomial.
+We may have two different ways of shrinking this interval around the desired number, such as the bisection method.  At each step, we can randomly choose which method to apply.  We may not be able to find the exact number in finitely many steps, but the resulting intervals should converge to that number.  Therefore, our computation can be modeled with an infinite tree, where each value is in the interval domain, defined in Example \ref{intervaldomain}.
+\[
+\xymatrix{
+& & & & & & & &\\
+& [.25,.5]\ar@{.}[ul]\ar@{.}[ur] & & [.2,.45]\ar@{.}[ul]\ar@{.}[ur] & & [.35,.6]\ar@{.}[ul]\ar@{.}[ur] & & [.3,.55]\ar@{.}[ul]\ar@{.}[ur]\\
+& & [0,.5]\ar@{-}[ul]\ar@{-}[ur] & & & & [.1,.6]\ar@{-}[ul]\ar@{-}[ur] \\
+& & & & [0,1]\ar@{-}[ull]\ar@{-}[urr]
+}
+\]  
+
+Now suppose that there are real numbers whose sum we wish to compute.  If $x\in [a,b]$, and $y\in [c,d]$, then we know that $x+y \in [a+c,b+d]$.  Therefore, we can use the Kleisli extension to lift the addition of real numbers to the addition of our trees of intervals.  If we tried to perform our random algorithms sequentially for each real number, it will not work since the first algorithm never ends.  We will keep pinning down the first number, but the information about the second real number will remain at the initial interval containing it.  However, as stated above, the Kleisli extension presented here performs the random choices concurrently, not sequentially.  Therefore, the intervals surrounding both numbers will become smaller, allowing our intervals for the sum to converge to sum of the real numbers.
+
+\section{The Miller-Rabin Algorithm} \label{mr}
+
+One of most well known randomized algorithms is the Miller-Rabin primality test. To test whether a given number $n$ is prime, a random number is chosen between $2$ and $n-2$.  Tests using modular arithmetic are performed with this random number before determining whether the given number is composite or probably prime.  The test can be run in polynomial time, but it has a possible one-sided error, putting primality testing in the complexity class of randomized polynomial time (RP).  A test on a prime number will always return ``probably prime", but sometimes, a test on a composite number will also return ``probably prime".  Thus, if the test returns ``composite", there is no chance for error, but a return of ``probably prime" always has a chance of error.  For a composite number, at most $\frac{1}{4}$ of the possible random choices between $2$ and $n-2$ will result in the test returning ``probably prime".  To minimize the error probability, we can repeat the test (choosing a new random number) only when the test returns ``probably prime". Running the test $m$ times results in an error probability of at most $\frac{1}{4^m}$.
+\begin{figure}
+\[
+\begin{xy}
+(0,30)*+{F} = "v4";%
+(30,30)*+{F} = "v5";%
+(40,30)*+{F} = "v6";%
+(70,30)*+{\bot} = "v7";%
+(15,15)*{} = "v8";%
+(55,15)*{} = "v9";%
+(35,0)*{} = "v10";%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+\end{xy}
+\]
+\caption{One possible iteration of a simplified Miller-Rabin test on a composite number.}
+\label{cointree}
+\end{figure}
+
+Figure \ref{cointree} shows the possible outcomes of a hypothetical Miller-Rabin test on a composite number.  For simplicity, it is assumed that a random number between $2$ and $n-2$ can be properly chosen using just two coin flips.  Each coin flip is represented by a branching of the binary tree.  The top of the tree is labeled with the return values of the test using the random numbers chosen by the resulting outcome of two coin flips.  If the test returns ``composite", an ``F" is used whereas ``$\bot$" denotes ``probably prime".  A ``T" is not used since a Miller-Rabin test never confirms that a number is prime.  If we wish to minimize the error probability, we can choose to run the test again, which will expand the tree wherever a ``$\bot$" is found.
+
+Figure \ref{cointree2} shows the possible outcomes of using Miller-Rabin a maximum of three times on the same composite number.  This can be extended similarly to an infinite tree with a zero probability of error.
+\begin{figure}
+\[
+\begin{xy}
+(0,30)*+{F} = "v4";%
+(30,30)*+{F} = "v5";%
+(40,30)*+{F} = "v6";%
+(70,30)*{} = "v7";%
+(15,15)*{} = "v8";%
+(55,15)*{} = "v9";%
+(35,0)*{} = "v10";%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};%
+(52,45)*+{F} = "v14";%
+(67,45)*+{F} = "v15";%
+(73,45)*+{F} = "v16";%
+(88,45)*{} = "v17";%
+(60,38)*{} = "v18";%
+(80,38)*{} = "v19";%
+{\ar@{-} "v19"; "v16"};%
+{\ar@{-} "v19"; "v17"};%
+{\ar@{-} "v18"; "v15"};%
+{\ar@{-} "v18"; "v14"};%
+{\ar@{-} "v7"; "v18"};%
+{\ar@{-} "v7"; "v19"};
+(78,53)*+{F} = "v24";%
+(86,53)*+{F} = "v25";%
+(90,53)*+{F} = "v26";%
+(98,53)*+{\bot} = "v27";%
+(82,49)*{} = "v28";%
+(94,49)*{} = "v29";%
+{\ar@{-} "v29"; "v26"};%
+{\ar@{-} "v29"; "v27"};%
+{\ar@{-} "v28"; "v25"};%
+{\ar@{-} "v28"; "v24"};%
+{\ar@{-} "v17"; "v28"};%
+{\ar@{-} "v17"; "v29"};
+\end{xy}
+\]
+\caption{Three iterations of a hypothetical Miller-Rabin test.}
+\label{cointree2}
+\end{figure}
+
+Suppose that we have a Miller-Rabin test performed on two composite numbers with the following possible outcomes:
+\[
+\begin{xy}
+(0,20)*+{F} = "v4";%
+(20,20)*+{F} = "v5";%
+(30,20)*+{F} = "v6";%
+(50,20)*+{\bot} = "v7";%
+(10,10)*{} = "v8";%
+(40,10)*{} = "v9";%
+(25,0)*{} = "v10";%
+(60,20)*+{\bot} = "v14";%
+(80,20)*+{F} = "v15";%
+(90,20)*+{F} = "v16";%
+(110,20)*+{F} = "v17";%
+(70,10)*{} = "v18";%
+(100,10)*{} = "v19";%
+(85,0)*{} = "v20";%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+{\ar@{-} "v19"; "v16"};%
+{\ar@{-} "v19"; "v17"};%
+{\ar@{-} "v18"; "v15"};%
+{\ar@{-} "v18"; "v14"};%
+{\ar@{-} "v20"; "v18"};%
+{\ar@{-} "v20"; "v19"};
+\end{xy}
+\]
+
+How should the binary operation \textbf{or} be lifted?  It may seem natural to perform the two tests one after the other, resulting in:
+\[
+\begin{xy}
+(45,0)*{} = "v1";%
+(21,10)*{} = "v2";%
+(69,10)*{} = "v3";%
+(9,20)*{} = "v4";%
+(33,20)*{} = "v5";%
+(57,20)*{} = "v6";%
+(81,20)*{} = "v7";%
+(3,30)*{} = "v8";%
+(15,30)*{} = "v9";%
+(27,30)*{} = "v10";%
+(39,30)*{} = "v11";%
+(51,30)*{} = "v12";%
+(63,30)*{} = "v13";%
+(75,30)*{} = "v14";%
+(87,30)*{} = "v15";%
+(0,40)*+{\bot} = "v16";%
+(6,40)*+{F} = "v17";%
+(12,40)*{F} = "v18";%
+(18,40)*{F} = "v19";%
+(24,40)*{\bot} = "v20";%
+(30,40)*+{F} = "v21";%
+(36,40)*+{F} = "v22";%
+(42,40)*+{F} = "v23";%
+(48,40)*+{\bot} = "v24";%
+(54,40)*+{F} = "v25";%
+(60,40)*+{F} = "v26";%
+(66,40)*+{F} = "v27";%
+(72,40)*+{\bot} = "v28";%
+(78,40)*+{\bot} = "v29";%
+(84,40)*+{\bot} = "v30";%
+(90,40)*+{\bot} = "v31";%
+{\ar@{-} "v1"; "v2"};%
+{\ar@{-} "v1"; "v3"};%
+{\ar@{-} "v2"; "v4"};%
+{\ar@{-} "v2"; "v5"};%
+{\ar@{-} "v3"; "v6"};%
+{\ar@{-} "v3"; "v7"};%
+{\ar@{-} "v4"; "v8"};%
+{\ar@{-} "v4"; "v9"};%
+{\ar@{-} "v5"; "v10"};%
+{\ar@{-} "v5"; "v11"};%
+{\ar@{-} "v6"; "v12"};%
+{\ar@{-} "v6"; "v13"};%
+{\ar@{-} "v7"; "v14"};%
+{\ar@{-} "v7"; "v15"};%
+{\ar@{-} "v8"; "v16"};%
+{\ar@{-} "v8"; "v17"};%
+{\ar@{-} "v9"; "v18"};%
+{\ar@{-} "v9"; "v19"};%
+{\ar@{-} "v10"; "v20"};%
+{\ar@{-} "v10"; "v21"};%
+{\ar@{-} "v11"; "v22"};%
+{\ar@{-} "v11"; "v23"};%
+{\ar@{-} "v12"; "v24"};%
+{\ar@{-} "v12"; "v25"};%
+{\ar@{-} "v13"; "v26"};%
+{\ar@{-} "v13"; "v27"};%
+{\ar@{-} "v14"; "v28"};%
+{\ar@{-} "v14"; "v29"};%
+{\ar@{-} "v15"; "v30"};%
+{\ar@{-} "v15"; "v31"};
+\end{xy}
+\]
+
+The probability of error in this case is $\frac{7}{16}$, assuming we use a fair coin.  However, this method has two main flaws.
+\begin{enumerate}
+\item How do we handle the infinite case?  If the first random test can use infinitely many coin flips, then the second test will never even start.
+\item The Kleisli extension that results in this behavior is not monotone.  Therefore, it does not form a monad in a category we want.
+\end{enumerate}
+
+Instead, consider feeding the result of each coin flip to both tests concurrently.  For two coin flips, our example would look like:
+
+\[
+\begin{xy}
+(0,20)*+{\bot} = "v4";%
+(20,20)*+{F} = "v5";%
+(30,20)*+{F} = "v6";%
+(50,20)*+{\bot} = "v7";%
+(10,10)*{} = "v8";%
+(40,10)*{} = "v9";%
+(25,0)*{} = "v10";%
+{\ar@{-} "v9"; "v6"};%
+{\ar@{-} "v9"; "v7"};%
+{\ar@{-} "v8"; "v5"};%
+{\ar@{-} "v8"; "v4"};%
+{\ar@{-} "v10"; "v8"};%
+{\ar@{-} "v10"; "v9"};
+\end{xy}
+\]
+
+To properly compare it with the sequential case, we should use the same maximum number of coin flips.  Feeding all four coin flips to both Miller-Rabin tests results in:
+
+\[
+\begin{xy}
+(45,0)*{} = "v1";%
+(21,10)*{} = "v2";%
+(69,10)*{} = "v3";%
+(9,20)*{} = "v4";%
+(33,20)*+{F} = "v5";%
+(57,20)*+{F} = "v6";%
+(81,20)*{} = "v7";%
+(3,30)*{} = "v8";%
+(15,30)*{} = "v9";%
+(75,30)*{} = "v14";%
+(87,30)*{} = "v15";%
+(0,40)*+{\bot} = "v16";%
+(6,40)*+{F} = "v17";%
+(12,40)*{F} = "v18";%
+(18,40)*{F} = "v19";%
+(72,40)*+{F} = "v28";%
+(78,40)*+{F} = "v29";%
+(84,40)*+{F} = "v30";%
+(90,40)*+{\bot} = "v31";%
+{\ar@{-} "v1"; "v2"};%
+{\ar@{-} "v1"; "v3"};%
+{\ar@{-} "v2"; "v4"};%
+{\ar@{-} "v2"; "v5"};%
+{\ar@{-} "v3"; "v6"};%
+{\ar@{-} "v3"; "v7"};%
+{\ar@{-} "v4"; "v8"};%
+{\ar@{-} "v4"; "v9"};%
+{\ar@{-} "v7"; "v14"};%
+{\ar@{-} "v7"; "v15"};%
+{\ar@{-} "v8"; "v16"};%
+{\ar@{-} "v8"; "v17"};%
+{\ar@{-} "v9"; "v18"};%
+{\ar@{-} "v9"; "v19"};%
+{\ar@{-} "v14"; "v28"};%
+{\ar@{-} "v14"; "v29"};%
+{\ar@{-} "v15"; "v30"};%
+{\ar@{-} "v15"; "v31"};
+\end{xy}
+\]
+which only has an error probability of $\frac{1}{8}$.  If the error possibility for each number had coincided, then the error probability would have been smaller, $\frac{1}{16}$.
+
+In fact, this can be extended to testing primality for a set of $m$ integers.  If we get enough random bits to perform the Miller-Rabin test $n$ times, we can use the same bits to test all $m$ numbers.  Then the probability that at least one error will occur is $m(\frac{1}{4})^n$.  For each integer, at most $(\frac{1}{4})^n$ of the possible random choices will result in an error.  The worst case scenario is when the error chances are all disjoint, resulting in $m(\frac{1}{4})^n$.  This idea is used in \cite{pettie2008randomized} to search for the smallest prime bigger than some integer $m$.
+
+Thus, for randomized algorithms, our Kleisli extension allows us to use random bits more efficiently.  Getting random bits can be an expensive or slow process, so it is beneficial to minimize the error probability using fewer random bits.
+
+\section{Relation to Scott's Stochastic Lambda Calculus}
+
+Dana Scott developed an operational semantics of the lambda calculus using the power set of natural numbers, $\mathcal{P}(\mathbb{N})$.  As terms of the lambda calculus, elements of $\mathcal{P}(\mathbb{N})$ can be applied to one another and $\lambda$-abstraction is achieved through the use of enumerations similar to G\"{o}del numbering.
+
+Scott then added randomness to his model, resulting in his stochastic lambda calculus \cite{scott2014stochastic}.  He does this by adding random variables.
+
+\begin{definition}
+A \emph{random variable} in Scott's $\mathcal{P}(\mathbb{N})$ model is a function $\mathsf{X}:[0,1]\to \mathcal{P}(\mathbb{N})$ where $\{t\in [0,1]|n\in \mathsf{X}(t)\}$ is Lebesgue measurable for all $n$ in $\mathcal{P}(\mathbb{N})$.
+\end{definition}
+
+This is similar to the monad of random choice presented in this paper.  We start with a base domain $D$, which could be $\mathcal{P}(\mathbb{N})$, and then have a function from a full antichain of $\{0,1\}^\infty$, $M$, into $D$.  We can really treat this as a function from the Cantor space, $\{0,1\}^\omega$ to $D$.  Since $M$ is a full antichain, $M \sqsubseteq_{EM} \{0,1\}^\omega$.  Thus we can extend $f$ to $\overline{f}:\{0,1\}^\omega-> D$, where $\overline{f}(w) = f\circ \pi_M(w)$.
+
+Now that random variables are added to the lambda calculus, there must be a way to define application of one random variable to another.  In a sense, this is lifting the application operation from $\mathcal{P}(\mathbb{N})$ to  $[0,1]\to \mathcal{P}(\mathbb{N})$, which, as stated above, is the role of the Kleisli extension of the monad.  Scott defines the application as follows:
+
+\begin{definition}
+Given two random variables $\mathsf{X}, \mathsf{Y}:[0,1]\to\mathcal{P}(\mathbb{N})$, the \emph{application operation} is defined by
+\[
+\mathsf{X}(\mathsf{Y})(t) = \mathsf{X}(t)(\mathsf{Y}(t))
+\]
+\end{definition}
+
+These random variables can be thought of as using an oracle that randomly gives a element of $[0,1]$, and then the function of the random variable uses this number to output an element of $\mathcal{P}(\mathbb{N})$.  Notice that in the above definition for application, both random variables receive the same $t$.  Thus, the oracle is consulted only once instead of giving a different random number to each.  This exactly mimics the concurrent operation of the Kleisli extension.  But instead of an oracle giving an entire real number at once (which has infinite information), the oracle gives one bit at a time.
+
+%\subsection{The Randomized $D_{\infty}$ Model}
+%
+%Scott's $D_{\infty}$ model was a solution to the domain equation $D \simeq [D->D]$ and provides a denotational semantics for the untyped lambda calculus.  This is because in the untyped lambda calculus, there are terms like $MN$, where $N$ acts like a base type ($D$) while $M$ acts like a function type ($D->D$).  But there are not types, so every term can take on both roles.  
+%
+%For Scott's stochastic lambda calculus, we can use the domain equation $RC(D) \simeq RC[D->D]$.  This can be seen by looking at application in the stochastic lambda calculus.  In a term, $\mathsf{X}(\mathsf{Y})(t) = \mathsf{X}(t)(\mathsf{Y}(t))$, there are two random variables, $\mathsf{X}$ and $\mathsf{Y}$.  Here $\mathsf{Y}(t)$ acts like the base type, so $\mathsf{Y}$ is like $RC(D)$.  The term $\mathsf{X}$ takes the result of $\mathsf{Y}$ and then outputs another value that act like the base.  Thus, $\mathsf{X}$ is like $RC[D->D]$.  Again, there are no types, so terms should be able to act in both roles, which is why the isomorphism $RC(D) \simeq RC[D->D]$ is necessary.  The $D_{\infty}$ models gives a solution to $D\simeq [D->D]$, so applying the $RC$ monad to this model gives a solution to $RC(D) \simeq RC[D->D]$.
+
+%\subsubsection{The Category}
+%
+%Let $\mathcal{K}$ be a category of posets left invariant by the $RC$ functor, such as \textsf{CPO} or \textsf{BCD}.  Now define a new category, $\mathcal{RV(K)}$, where $\textrm{obj}(\mathcal{RV(K)}) = 
+%\{RC(D)|D\in \textrm{obj}(\mathcal{K})\}$, and $\mathrm{hom}(RC(D), RC(E)) = [D->E]$.  To actually apply a function $a:[D->E]$, to an object $RC(D)$, simply lift the function using the $RC$ functor.  $RC(a)(M,f) = (M,a\circ f)$. This category is clearly an O-category since if $\mathcal{K}$ is since it uses the same morphisms.
+%
+%\begin{proposition}
+%The category $\mathcal{RV(K)}$ is a localized O-category.
+%\end{proposition}
+%
+%\subsubsection{The Functor}
+%
+%Now let's define a functor $F:\mathcal{RV(K)}^{op} \times \mathcal{RV(K)} -> \mathcal{RV(K)}$.  For the objects, 
+%\begin{displaymath}
+%F(RC(D), RC(E)) = RC[D->E]
+%\end{displaymath}
+%For a given morphism $(f,g)$, with $f:D'->D$ and $g:E->E'$, we have $F(f,g):[D->E] -> [D'->E']$ defined by:
+%\begin{displaymath}
+%F(f,g)(h)(d') = g\circ h\circ f(d')
+%\end{displaymath}
+%It must be shown that this functor preserves the identity morphism and composition.  The identity is clear:
+%\begin{align*}
+%F(\mathrm{id}, \mathrm{id})(h) &= 
+%\mathrm{id}\circ h\circ \mathrm{id} \\
+%&= h
+%\end{align*}
+%For composition,
+%\begin{align*}
+%F(f_2,g_2)\circ F(f_1,g_1)(h) &= 
+%F(f_2,g_2)(g_1\circ h \circ f_1) \\
+%&= g_2\circ (g_1\circ h \circ f_1) \circ f_2 \\
+%&= (g_2\circ g_1)\circ h \circ (f_1 \circ f_2) \\
+%&= F(f_1\circ f_2, g_2\circ g_1)(h)
+%\end{align*}
+%Note that $f_1$ and $f_2$ get switched in the composition.  This is because the functor uses the opposite category for the first component.  Since the functor on morphisms only uses composition, the functor is locally continuous.
+%\begin{proposition}
+%The functor $F$ is locally continuous.
+%\end{proposition}
+%\begin{proposition}
+%The functor $F_{ep}:(\mathcal{RV(K)}^{op} \times \mathcal{RV(K)})_{ep} -> \mathcal{RV(K)}_{ep}$ is continuous.
+%\end{proposition}
+
+

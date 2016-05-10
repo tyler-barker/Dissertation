@@ -1,0 +1,470 @@
+%\chapter{Distributive Laws}
+
+We can model the addition of computational effects to a programming language by using monads.  If multiple effects are needed, then the corresponding monads can be composed to obtain another monad, but only if there is a distributive law between the two monads.  Our random choice monad gives a way to model randomized algorithms in a programming language.  If we also want to model nondeterminism, then we should combine the random choice monad with one of the probabilistic powerdomains.  To do this, we must first show that there is a distributive law.
+
+\section{Beck's Distributive Law}
+
+For two monads, $S$ and $T$, over the same category, the functor $TS$ is not necessarily a monad.  According to Beck's Theorem \cite{beck1969distributive}, the composition of two monads, $S$ and $T$, is a monad if and only if there is a distributive law between them.  A distributive law consists of 
+a natural transformation $\lambda :ST\rightarrow TS$ that satisfies the following equations:
+
+\begin{enumerate}
+\item 
+$\lambda\circ S\eta^T = \eta^T S$
+\item
+$\lambda\circ \eta^S T = T\eta^S$
+\item
+$\lambda\circ S\mu^T = \mu^T S\circ T\lambda\circ\lambda T$
+\item 
+$\lambda\circ\mu^S T = T\mu^S\circ \lambda S\circ S\lambda$
+\end{enumerate}
+For the composition of two monads, $TS$, to be a monad, the multiplication $\mu^{TS}:TSTS->TS$ must be defined.  Given $TSTS$ we can use the natural transformation $\lambda$ to get $TTSS$.  Then the multiplications of $T$ and $S$ can each be used to get $TS$.  The above equations ensure that the multiplication defined in this manner will satisfy the monad laws.
+%\section{Distributive Law With the Upper Powerdomain}
+%
+%Let $S$ be the upper powerdomain functor and $T$ be the random choice functor.  Let $a$ be a morphism from $X$ to $Y$.
+%For a saturated, Scott compact set, $U$, of $X$, $S(a)(U) = \ua{\{a(u)|u\in U\}}$.  For a random variable $(M,f)$, 
+%$T(a)(M,f) = (M,a\circ f)$.  Objects of $TS(X)$ are random variables $(M,f)$, with $f:M\rightarrow SC(X)$.  Objects of 
+%$ST(X)$ are saturated, Scott compact sets of random variables on $X$.  For $(M,f)\in TS(X)$, $TS(a)(M,f) = (M,S(a)\circ f)$.  For a saturated, Scott compact set
+%$U$ of $ST(X)$, $ST(a)(U) = \ua{\{(M,a\circ f)|(M,f)\in U\}}$.
+%
+%Suppose $(M,f) \in TS(X)$, so that $f$ is a function from $M$ to $SC(X)$.  Define the natural transformation,
+%$\lambda : TS(X)\rightarrow ST(X)$ by:
+%\[\lambda(M,f) = \ua \{(M,g)| g(w) \in f(w), \forall w\in M\}\]
+%
+%For $\lambda$ to be a natural transformation, the following diagram must commute:
+%
+%\[
+%\xymatrix{
+%TS(X)\ar[r]^{TS(a)}\ar[d]_\lambda & TS(Y)\ar[d]^\lambda \\
+%ST(X)\ar[r]_{ST(a)} & ST(Y)
+%}
+%\]
+%
+%We check this:
+%\begin{align*}
+%\lambda\circ TS(a)(M,f) &= \lambda (M,\ua(a\circ f)) \\
+%&= \ua \{(M,g) | g(w) \in \ua(a(f(w))) \forall w\in M\}\\
+%&= \ua \{(M,g) | g(w) \in a(f(w)) \forall w\in M\} \tag{1}
+%\end{align*}
+%\begin{align*}
+%ST(a)\circ \lambda (M,f) &= ST(a) \ua\{(M,h)|h(w)\in f(w) \forall w\in M\} \\
+%&= \ua\{(N,a\circ j)|(N,j)\in \ua\{(M,h)|h(w)\in f(w) \forall w\in M\}\} \\
+%&= \ua\{(M,a\circ h)|h(w)\in f(w) \forall w\in M\} \tag{2}
+%\end{align*}
+%
+%(1) and (2) are equal since for each fixed $z\in f(w)$, there is a $g$ such that $g(w) = a(z)$, and an $h$ such that $h(w) = z$.  Thus, $a\circ h(w) = a(z) = g(w)$.  Also note that since all functions are monotone, we only have to take the upper set at the very end.
+%
+%\begin{proposition}
+%There is a distributive law between the monad of random choice and the upper powerdomain, using the natural transformation $\lambda$.
+%\end{proposition}
+%
+%\begin{description}
+%
+%\item[{[}$\boldsymbol{\lambda\circ T\eta^S = \eta^S T}${]}] \hfill \\
+%
+%\[
+%\xymatrix{
+%T\ar[r]^{T\eta^S}\ar[dr]_{\eta^S T} & TS\ar[d]^\lambda \\
+%& ST
+%}
+%\]
+%
+%\begin{align*}
+%\lambda\circ T\eta^S (M,f) &= \lambda(M,\ua f) \\
+%&= \ua\{(M,g)|g(w)\in \ua f(w)\} \\
+%&= \ua (M,f)
+%\end{align*}
+%\begin{align*}
+%\eta^S T(M,f) &= \ua (M,f)
+%\end{align*}
+%
+%\item[{[}$\boldsymbol{\lambda\circ \eta^T S = S\eta^T}${]}] \hfill \\
+%
+%\[
+%\xymatrix{
+%S\ar[r]^{\eta^T S}\ar[dr]_{S\eta^T} & TS\ar[d]^\lambda \\
+%& ST
+%}
+%\]
+%
+%\begin{align*}
+%\lambda\circ \eta^T S (U) &= \lambda (\epsilon, \chi_U) \\
+%&= \ua \{(\epsilon, g)|g(\epsilon) \in U\}
+%\end{align*}
+%\begin{align*}
+%S\eta^T (U) &= \ua \{(\epsilon, g)|g(\epsilon) \in U\}
+%\end{align*}
+%
+%\item[{[}$\boldsymbol{\lambda\circ T\mu^S = \mu^S T\circ S\lambda\circ\lambda S}${]}] \hfill \\
+%
+%\[
+%\xymatrix{
+%TSS\ar[r]^{\lambda S}\ar[d]_{T\mu^S} & STS\ar[r]^{S\lambda} & SST\ar[d]^{\mu^S T} \\
+%TS\ar[rr]_\lambda & & ST
+%}
+%\]
+%
+%\begin{align*}
+%\lambda\circ T\mu^S (M,f) &= \lambda(M, \bigcup f) \\
+%&= \ua \{(M,h) | h(w) \in \bigcup f(w)\}
+%\end{align*}
+%\begin{align*}
+%\mu^S T\circ S\lambda\circ\lambda S (M,f) &= \mu^S T\circ S\lambda (\ua \{(M,g)|g(w)\in f(w)\}) \\
+%&= \mu^S T (\ua \{\lambda(M,g) | g(w)\in f(w) \}) \\
+%&= \mu^S T (\ua \{\ua \{(M,h)|h(w)\in g(w)\} | g(w) \in f(w)\} ) \\
+%&= \ua \{ \{(M,h)|h(w)\in g(w)\} | g(w) \in f(w)\} 
+%\end{align*}
+%
+%\item[{[}$\boldsymbol{\lambda\circ\mu^T S = S\mu^T\circ \lambda T\circ T\lambda}${]}] \hfill \\
+%
+%\[
+%\xymatrix{
+%TTS\ar[r]^{T\lambda}\ar[d]_{\mu^T S} & TST\ar[r]^{\lambda T} & STT\ar[d]^{S\mu^T} \\
+%TS\ar[rr]_\lambda & & ST
+%}
+%\]
+%
+%\begin{align*}
+%\lambda\circ\mu^T S (M, (f_1, f_2)) &= \lambda (\cup_{w\in M} \Min (\ua w \cap \ua f_1(w)), f_2) \\
+%&= \ua \{(\cup_{w\in M} \Min (\ua w \cap \ua f_1(w)), h) | h(w) \in f_2(w)\}
+%\end{align*}
+%\begin{align*}
+%S\mu^T\circ \lambda T\circ T\lambda (M, (f_1, f_2)) &= S\mu^T\circ \lambda T(M, \ua \{(f_1, g)|g(w) \in f_2(w)\}) \\
+%&= S\mu^T (\ua \{(M,h) | h(w) \in \{(f_1, g)|g(w) \in f_2(w)\}\}) \\
+%&= \ua \{ (\cup_{w\in M} \Min (\ua w \cap \ua (\pi_1 \circ h(w))), \pi_2 \circ h) | h(w) \in \{(f_1, g)|g(w)\in f_2(w)\} \} \\
+%\end{align*}
+%\end{description} \hfill $\blacksquare$
+
+\section{Distributive Law With the Lower Powerdomain}
+
+We now show that the random choice monad enjoys a distributive law with the lower powerdomain in the category \textsf{BCD}.  The lower, or Hoare, powerdomain was defined in Section \ref{powerdomains}.  For a domain $X$, it consists of the nonempty Scott closed sets of $X$, denoted $\Gamma_{0}(X)$.  The unit of the lower powerdomain, $\eta:X\to \Gamma_{0}(X)$ is defined by: \[\eta(x) = \da x\]
+The multiplication, $\mu:\Gamma_{0}^2(X)\to \Gamma_{0}(X)$ is defined as: \[\mu(S) = \overline{\bigcup_{U\in S} U}\]
+
+Let $a$ be a morphism from $X$ to $Y$.  For a Scott closed set, $U$, of $X$, $\Gamma_{0}(a)(U) = \overline{\{a(u)|u\in U\}}$.  Objects of $RC\circ \Gamma_{0}(X)$ are random variables $(M,f)$, with $f:M\to \Gamma_{0}(X)$.  Objects of $\Gamma_{0}\circ RC(X)$ are Scott closed sets of random variables on $X$.  For $(M,f) \in RC\circ \Gamma_{0}(X)$, 
+\begin{align*}
+RC\circ \Gamma_{0}(a)(M,f) &= (M,\Gamma_{0}(a)\circ f) \\
+&= (M,w\mapsto \overline{\bigcup_{x\in f(w)}a(x)})
+\end{align*}
+For a Scott closed set, $U$, of $\Gamma_{0}\circ RC(X)$, \[\Gamma_{0}\circ RC(a)(U) = \overline{\{(M,a\circ f)\ |\ (M,f)\in U\}}\]
+
+To simplify the following diagrams, let $T$ be the random choice monad and let $S$ be the lower powerdomain.  Now suppose $(M,f) \in TS(X)$, so that $f$ is a function from $M$ to $\Gamma_{0}(X)$.  Define the natural transformation $\lambda:TS\to ST$ so that for an object $(M,f)$ in $TS(X)$:
+\begin{displaymath}
+\lambda_X(M,f) =\, \da \{(M,g)\ |\ g(w)\in f(w), \forall w\in M\}
+\end{displaymath}
+This set is Scott closed because each $f(w)$ is Scott closed as we now show:  For any directed set $D = \{N_i,h_i\}$ in $\lambda(M,f)$, there is a directed set $E = \{M,\overline{h_i}\}$, where $\overline{h_i}(w) = h_i\circ \pi_{N_i}(w)$, and $\overline{h_i}(w)$ is contained in $f(w)$ for each $i$.  $\bigsqcup D \sqsubseteq \bigsqcup E = (M,w\mapsto \bigsqcup_i \overline{h_i}(w))$.  Since $\overline{h_i}(w)$ is in $f(w)$ for each $i$ and $f(w)$ is closed, $\bigsqcup_i \overline{h_i}(w)$ is in $f(w)$.  Therefore, $\bigsqcup E$ is in $\lambda_X(M,f)$.  $\bigsqcup D$ is smaller, so it must also be in $\lambda_X(M,f)$.
+
+\begin{proposition}
+For any bounded complete domain, $X$, $\lambda_X:TS(X)\to ST(X)$ is monotone.
+\end{proposition}
+\begin{proof}
+If $(N,h) \sqsubseteq (M,f)$ then $N\subseteq\, \da M$ and for any $z\in N$ and $w\in M$ with $z\leq w$, $h(z) \subseteq f(w)$.  We must show that \[\lambda_X(N,h) =\, \da \{(N,g)\ |\ g(z)\in h(z), \forall z\in N\} \subseteq\, \da \{(M,g)\ |\ g(w)\in f(w), \forall w\in M\} = \lambda_X(M,f)\]  Any $(N,g)$ can be extended to $(M,\overline{g})$ with $\overline{g}(w) = g\circ \pi_N(w)$.  For each $w$, $\overline{g}(w) = g(z)$ for some $z\leq w$, so $\overline{g}(w) \in h(z)$ and since $h(z) \subseteq f(w)$, $\overline{g}(w) \in f(w)$.  Therefore, $(M,\overline{g}) \in \lambda_X(M,f)$ and $(N,g)\sqsubseteq (M,\overline{g})$, so $(N,g) \in \lambda_X(M,f)$.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+For any bounded complete domain, $X$, $\lambda_X:TS(X)\to ST(X)$ is Scott continuous.
+\end{proposition}
+\begin{proof}
+For a directed set $\{M_i,f_i\}$ in $X$, its supremum is $(\bigsqcup_i M_i, w\mapsto\overline{\bigcup_i f_i\circ \pi_{M_i}(w)})$.  Applying $\lambda_X$ results in 
+\[\da\{(\bigsqcup_i M_i,g)\ |\ g(w) \in \overline{\bigcup_i f_i\circ \pi_{M_i} (w)}\} = \overline{\{(\bigsqcup_i M_i,g)\ |\ g(w) \in \bigcup_i f_i\circ \pi_{M_i} (w)\}}\tag{1}\]   
+We must show that this is equal to
+\[\overline{\bigcup_i \da\{(M_i,g)\ |\ g(w)\in f_i(w)\}} = \overline{\bigcup_i\{(M_i,g)\ |\ g(w)\in f_i(w)\}}\tag{2}\]
+It is clear that (2) $\subseteq$ (1) since any $(M_i, g)$ can be extended to $(\bigsqcup_i M_i, \overline{g})$, where $\overline{g}(w) = g\circ \pi_{M_i}(w)$.  Thus, we need to show that (1) $\subseteq$ (2).  
+
+%From Corollary \ref{projections}, each $(M_i,f_i)$ is the supremum of its projections to finite antichains, $\pi_n(M_i, f_i)$.  Each $(M_i, f_i)$ can be replaced by all of these projections without changing the supremum of the entire directed set.  Thus the supremum can be represented as:
+%\[(\bigsqcup_i \bigsqcup_n \pi_n(M_i), w\mapsto \overline{\bigcup_i \bigcup_n \pi_n(f_i)\circ \pi_{\pi_n(M_i)}(w)})\]
+%Applying $\lambda$ then results in
+%\[\overline{\{(\bigsqcup_i M_i,g)|g(w) \in \bigcup_i \bigcup_n \pi_n(f_i)\circ \pi_{\pi_n(M_i)}(w)\}}\tag{1}\]
+
+Now consider some $(\bigsqcup_i M_i, g)$ in (1).  From Corollary \ref{projections}, $(\bigsqcup_i M_i, g)$ is the supremum of its projections to finite antichains, $\pi_n(\bigsqcup_i M_i, g)$.  If we can show that $\pi_n(\bigsqcup_i M_i, g)$ is in (2) for all $n$, then $(\bigsqcup_i M_i, g)$ must also be in (2) since (2) is Scott closed.  For a fixed $n$, $\pi_n(\bigsqcup_i M_i)$ is way below $\bigsqcup_i M_i$ so there is some $j$ such that $\pi_n(\bigsqcup_i M_i)\sqsubseteq M_j$.  We can assume that all $M_i$ in our directed set are above $M_j$.  For any $w$ in $\bigsqcup_i M_i$, there is a $k$ such that $g(w) \in f_k \circ \pi_{M_k}(w)$.  For any $z$ in $\pi_n(\bigsqcup_i M_i)$, $\pi_n(g)(z)$ is below $g(w)$ for any $w$ above $z$.  Thus there is a $k$ such that $\pi_n(g)(z) \in f_k(w)$ for any $w$ above $z$.  There are finitely many such words $z$ that each have a corresponding $k$.  Since $\{M_i, f_i\}$ is directed, there is a $(M_p, f_p)$ above all such $(M_k, f_k)$.  Now $\pi_n(\bigsqcup_i M_i)$ is below $M_p$ and for all $z$ in $\pi_n(\bigsqcup_i M_i)$ and $w$ in $M_p$ with $z\leq w$, $\pi_n(g)(z) \in f_p(w)$.  Therefore, we can extend $\pi_n(\bigsqcup_i M_i, g)$ to $(M_p, \overline{\pi_n(g)})$, where $\overline{\pi_n(g)}(w) \in f_p(w)$, so it is in (2).
+\hfill $\blacksquare$
+%We can assume that $n<m$ so that $\pi_n(\sqcup_i M_i)\sqsubseteq%\pi_m(M_k)$.
+\end{proof}
+
+In proving that the following diagrams commute, we can assume that for each $(M,f)$, the antichain is finite.  If not, $(M,f) = \bigsqcup_n \pi_n(M,f)$, by Corollary \ref{projections}.  Each $\pi_n(M,f)$ has a finite antichain, so if the equations hold for elements with finite antichains, then by continuity, they must hold for all elements.  This is helpful since on finite antichains, all functions are continuous.
+
+\begin{proposition}
+$\lambda$ is a natural transformation.
+\end{proposition}
+\begin{proof}
+Suppose $X$ and $Y$ are bounded complete domains and $a:X->Y$ is a Scott continuous function.  For $\lambda$ to be a natural transformation, the following diagram must commute:
+
+\[
+\xymatrix{
+TS(X)\ar[r]^{TS(a)}\ar[d]_{\lambda_X} & TS(Y)\ar[d]^{\lambda_Y} \\
+ST(X)\ar[r]_{ST(a)} & ST(Y)
+}
+\]
+We check this here:
+\begin{align*}
+\lambda_Y \circ TS(a)(M,f)) &= \lambda_Y(M,w\mapsto \overline{\bigcup_{x\in f(w)}a(x)}) \\
+&= \,\da \{(M,g)\ |\ g(w)\in \overline{\bigcup_{x\in f(w)}a(x)}, \forall w\in M\} \\
+&= \overline{\{(M,g)\ |\ g(w)\in \bigcup_{x\in f(w)}a(x), \forall w\in M\}} \tag{1}
+\end{align*}
+
+\begin{align*}
+ST(a)\circ \lambda_X(M,f) &= 
+ST(a)(\da \{(M,h)\ |\ h(w)\in f(w), \forall w\in M\}) \\ 
+&= \overline{\{(N,a\circ j)\ |\ (N,j)\in\, \da \{(M,h)\ |\ h(w)\in f(w), \forall w\in M\}\}} \\
+&= \overline{\{(M,a\circ h)\ |\ h(w)\in f(w), \forall w\in M\}} \tag{2}
+\end{align*}
+(1) is a subset of (2) since for each $g$ in (1) and $w\in M$, $g(w) = a(x_w)$ for some $x_w\in f(w)$.  We can construct a corresponding $h$ in (2) by setting $h(w)=x_w$.  (2) is a subset of (1) since for each $h$ in (2), we can construct the corresponding $g$ as $g=a\circ h$.  Therefore, (1) and (2) are equal.  Also note that since all functions are continuous, we only have to take the closure at the very end.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+In the category of bounded complete domains, there is a distributive law between the monad of random choice and the lower powerdomain, using the natural transformation $\lambda$.
+\end{proposition}
+\begin{proof}
+\begin{description}
+
+\item[{[}$\boldsymbol{\lambda\circ T\eta^S = \eta^S T}${]}] \hfill \\
+\[
+\xymatrix{
+T\ar[r]^{T\eta^S}\ar[dr]_{\eta^S T} & TS\ar[d]^{\lambda} \\
+& ST
+}
+\]
+Let $(M,f)$ be in $T(X)$.
+\begin{align*}
+\lambda_X\circ T\eta^S (M,f) &= \lambda_X(M,w\mapsto\, \da f(w)) \\
+&= \,\da \{(M,g)\ |\ g(w)\in\, \da f(w)\} \\
+&= \,\da \{(M,f)\}
+\end{align*}
+\begin{align*}
+\eta^S T(M,f) &= \,\da \{(M,f)\}
+\end{align*}
+
+\item[{[}$\boldsymbol{\lambda\circ \eta^T S = S\eta^T}${]}] \hfill \\
+\[
+\xymatrix{
+S\ar[r]^{\eta^T S}\ar[dr]_{S\eta^T} & TS\ar[d]^{\lambda} \\
+& ST
+}
+\]
+Let $U$ be a closed set in $S(X)$.
+\begin{align*}
+\lambda_X\circ \eta^T S (U) &= \lambda_X (\epsilon, \chi_U) \\
+&= \,\da \{(\epsilon, g)\ |\ g(\epsilon) \in U\} \\
+&= \{(\epsilon, g)\ |\ g(\epsilon) \in U\}
+\end{align*}
+The last equality holds because $U$ is a lower set.
+\begin{align*}
+S\eta^T (U) &= \overline{\{(\epsilon, g)|g(\epsilon) \in U\}} \\
+&= \{(\epsilon, g)|g(\epsilon) \in U\}
+\end{align*}
+Here, the last equality holds since $U$ is closed.
+
+\item[{[}$\boldsymbol{\lambda\circ T\mu^S = \mu^S T\circ S\lambda\circ\lambda_X S}${]}] \hfill \\
+\[
+\xymatrix{
+TSS\ar[r]^{\lambda S}\ar[d]_{T\mu^S} & STS\ar[r]^{S\lambda} & SST\ar[d]^{\mu^S T} \\
+TS\ar[rr]_\lambda & & ST
+}
+\]
+Let $(M,f)$ be an element of $TSS(X)$ so that $f$ is a function from $M$ to $S^2(X)$.
+\begin{align*}
+\lambda_X\circ T\mu^S (M,f) &= \lambda_X(M, w\mapsto \overline{\bigcup_{U\in f(w)} U}) \\
+&= \,\da \{(M,h)\ |\ h(w) \in \overline{\bigcup_{U\in f(w)}U}\} \\
+&= \overline{ \{(M,h)\ |\ h(w) \in \bigcup_{U\in f(w)} U\}} \tag{1}
+\end{align*}
+\begin{align*}
+\mu^S T\circ S\lambda_X\circ\lambda_X S (M,f) &= \mu^S T\circ S\lambda_X (\da \{(M,g)\ |\ g(w)\in f(w)\}) \\
+&= \mu^S T (\overline{ \{\lambda_X(M,g)\ |\ g(w)\in f(w) \}}) \\
+&= \mu^S T (\overline{ \{ \{(M,h)\ |\ h(w)\in g(w)\}\ |\ g(w) \in f(w)\}} ) \\
+&= \overline{ \{(M,h)\ |\ h(w)\in g(w), g(w) \in f(w)\} } \tag{2}
+\end{align*}
+We show that (1) and (2) are equal before taking the closure.  First we show (1) $\subseteq$ (2).  For each $h$ in (1) and $w\in M$, $h(w)\in U_w$ for some $U_w\in f(w)$.  We can construct a corresponding $g$ in (2) by setting $g(w)=U_w$.  Now we show (2) $\subseteq$ (1).  For each $h$ in (2), $h(w) \in g(w)$.  In (1), $h(w)$ has to be in at least one $U\in f(w)$  But $g(w)\in f(w)$, so the required $U$ can taken as $g(w)$.  Therefore, (1) and (2) are equal.
+\item[{[}$\boldsymbol{\lambda\circ\mu^T S = S\mu^T\circ \lambda T\circ T\lambda}${]}] \hfill \\
+\[
+\xymatrix{
+TTS\ar[r]^{T\lambda}\ar[d]_{\mu^T S} & TST\ar[r]^{\lambda T} & STT\ar[d]^{S\mu^T} \\
+TS\ar[rr]_\lambda & & ST
+}
+\]
+Let $(M,f)$ be an element of $TTS(X)$, and let $f=(f_1,f_2)$.  Here, $(f_1,f_2)$ is a function from $M$ to $TS(X)$.  Thus, $f_1$ gives another antichain and $f_2$ outputs a function from that antichain to $S(X)$.
+\begin{align*}
+\lambda_X\circ\mu^T S (M, f) &= \lambda_X (\bigcup_{w\in M} \Min (\ua w\ \cap \ua f_1(w)), w\mapsto (f_2(w))(w)) \\
+&= \,\da \{(\bigcup_{w\in M} \Min (\ua w\ \cap \ua f_1(w)), g)\ |\  g(w) \in (f_2(w))(w)\} \\
+&= \overline{ \{ (\bigcup_{w\in M} \Min (\ua w\ \cap \ua f_1(w)), g)\ |\ g(w)\in (f_2(w))(w)\}}
+\end{align*}
+\begin{align*}
+\!\!\!\!\!\!\!\!\!\!\!\!S\mu^T\!\!\circ\! \lambda_X T\!\circ\! T\lambda_X (M,\! f) &= S\mu^T\circ \lambda_X T(M, w\mapsto \da \{(f_1(w), g)|g(w) \in (f_2(w))(w)\}) \\
+&= S\mu^T (\da \{(M,(h_1,h_2)) | h(w) \in \{(f_1(w), g)|g(w) \in (f_2(w))(w)\}\}) \\
+&= \overline{ \{ (\!\bigcup_{w\in M}\!\! \Min (\!\ua\! w\!\ \cap\!\! \ua h_1(w)),\! w\!\mapsto\! h_2(w)(w)) | h(w)\! \in\! \{(f_1(w),\! g)|g(w)\!\in\! f_2(w)(w)\} \}} \\
+&= \overline{ \{ (\bigcup_{w\in M} \Min (\ua w\ \cap \ua f_1(w)), g) | g(w)\in (f_2(w))(w)\}}
+\end{align*}
+\end{description} \hfill $\blacksquare$
+\end{proof}
+
+We can also get a distributive law with the lower powerdomain in the opposite direction.  Define the natural transformation $\lambda':ST\to TS$ so that for an object $U$ in $ST(X)$:
+\[\lambda'_X (U) = \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto\overline{\bigcup_{(M,f)\in U} f\circ \pi_M(w)}\Bigr)\]
+
+\begin{proposition}
+For any bounded complete domain, $X$, $\lambda'_X:ST(X)\to TS(X)$ is monotone.
+\end{proposition}
+\begin{proof}
+If $U\subseteq V$ for two Scott closed sets in $ST(X)$, we must show that \[\lambda'_X(U) = \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto\overline{\bigcup_{(M,f)\in U} f\circ \pi_M(w)}\Bigr) \sqsubseteq \Bigl(\bigsqcup_{(N,g)\in V} N, z\mapsto\overline{\bigcup_{(N,g)\in V} g\circ \pi_N(z)}\Bigr) = \lambda'_X(V)\]
+$\bigsqcup_{(M,f)\in U} M \sqsubseteq_{EM} \bigsqcup_{(N,g)\in V} N$ since $U \subseteq V$.  For the second component, if $w\leq z$, then
+\begin{align*}
+\overline{\bigcup_{(M,f)\in U} f\circ \pi_M(w)} &=
+\overline{\bigcup_{(M,f)\in U} f\circ \pi_M(z)} \\
+&\sqsubseteq
+\overline{\bigcup_{(N,g)\in V} g\circ \pi_N(z)}
+\end{align*}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+For a bounded complete domain $X$, $\lambda'_X:ST(X)\to TS(X)$ is Scott continuous.
+\end{proposition}
+\begin{proof}
+Let $\{U_i\}$ be a directed set in $ST(X)$.  Then the supremum is $\overline{\bigcup_i U_i}$.
+\begin{align*}
+\lambda'_X\Bigl(\overline{\bigcup_i U_i}\Bigr) &= \Bigl(\bigsqcup_{(M,f)\in \overline{\bigcup_i U_i}} \!\!\!\!\!M,\ w\mapsto \overline{\bigcup_{(M,f)\in \overline{\bigcup_i U_i}}\!\!\! f\circ \pi_M(w)}\Bigr) \\ 
+&= \Bigl(\bigsqcup_i \bigsqcup_{(M,f)\in U_i} \!\!\!M,\ w\mapsto \overline{\bigcup_i \bigcup_{(M,f)\in U_i}\!\!\! f\circ \pi_M(w)}\Bigr)
+\end{align*}
+
+\begin{align*}
+\bigsqcup_i \lambda'_X(U_i) &= \bigsqcup_i \Bigl(\bigsqcup_{(M,f)\in U_i} M, w\mapsto\overline{\bigcup_{(M,f)\in U_i} f\circ \pi_M(w)}\Bigr) \\
+&= \Bigl(\bigsqcup_i \bigsqcup_{(M,f)\in U_i} M, w\mapsto\overline{\bigcup_i \overline{\bigcup_{(M,f)\in U_i} f\circ \pi_M(w)}}\Bigr) \\
+&= \Bigl(\bigsqcup_i \bigsqcup_{(M,f)\in U_i} \!\!\!M,\ w\mapsto \overline{\bigcup_i \bigcup_{(M,f)\in U_i}\!\!\! f\circ \pi_M(w)}\Bigr) \\
+\end{align*}
+
+\vspace{-.25in}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+$\lambda'$ is a natural transformation.
+\end{proposition}
+\begin{proof}
+Suppose $X$ and $Y$ are bounded complete domains and $a:X->Y$ is a Scott continuous function.  Again, if $\lambda'$ is a natural transformation, then the following diagram must commute:
+
+\[
+\xymatrix{
+ST(X)\ar[r]^{ST(a)}\ar[d]_{\lambda'_X} & ST(Y)\ar[d]^{\lambda'_Y} \\
+TS(X)\ar[r]_{TS(a)} &TS(Y)
+}
+\]
+
+We check this here:
+\begin{align*}
+\lambda'_Y\circ ST(a)(U) &= \lambda'_Y \overline{\{(M,a\circ f)|(M,f)\in U\}} \\
+&= \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto\overline{\bigcup_{(M,f)\in U} a\circ f\circ \pi_M(w)}\Bigr)
+\end{align*}
+\begin{align*}
+TS(a)\circ \lambda'_X U &= TS(a) \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto \overline{\bigcup_{(M,f)\in U} f\circ \pi_M(w)}\Bigr) \\
+&= \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto\overline{ a\bigl(\overline{\bigcup_{(M,f)\in U} f\circ \pi_M(w)}\bigr)}\Bigr) \\
+&= \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto\overline{ a\bigl(\bigcup_{(M,f)\in U} f\circ \pi_M(w)\bigr)}\Bigr) \\
+&= \Bigl(\bigsqcup_{(M,f)\in U} M, w\mapsto\overline{ \bigcup_{(M,f)\in U} a\circ f\circ \pi_M(w)}\Bigr) \\
+\end{align*}
+
+\vspace{-.25in}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+There is a distributive law between the monad of random choice and the lower powerdomain, using the natural transformation $\lambda'$.
+\end{proposition}
+\begin{proof}
+\begin{description}
+\item[{[}$\boldsymbol{\lambda'\circ S\eta^T = \eta^T S}${]}] \hfill \\
+\[
+\xymatrix{
+S\ar[r]^{S\eta^T}\ar[dr]_{\eta^T S} & ST\ar[d]^\lambda' \\
+& TS
+}
+\]
+Let $U$ be a Scott closed set of $X$.
+\begin{align*}
+\lambda'_X \circ S\eta^T (U) &= \lambda'_X (\{(\epsilon, \chi_u)\ |\ u\in U\}) \\
+&= (\epsilon, \chi_U)
+\end{align*}
+\begin{align*}
+\eta^T S(U) &= (\epsilon, \chi_U)
+\end{align*}
+\item[{[}$\boldsymbol{\lambda'\circ \eta^S T = T\eta^S}${]}] \hfill \\
+\[
+\xymatrix{
+T\ar[r]^{\eta^S T}\ar[dr]_{T\eta^S} & ST\ar[d]^\lambda' \\
+& TS
+}
+\]
+Let $(M,f)$ be in $T(X)$.
+\begin{align*}
+\lambda'_X \circ \eta^S T (M,f) &= \lambda'_X (\da (M,f)) \\
+&= (M, w\mapsto\,\da f(w))
+\end{align*}
+\begin{align*}
+T\eta^S (M,f) &= (M,w\mapsto\,\da f(w))
+\end{align*}
+\item[{[}$\boldsymbol{\lambda'\circ S\mu^T = \mu^T S\circ T\lambda'\circ\lambda' T}${]}] \hfill \\
+\[
+\xymatrix{
+STT\ar[r]^{\lambda' T}\ar[d]_{S\mu^T} & TST\ar[r]^{T\lambda'} & TTS\ar[d]^{\mu^T S} \\
+ST\ar[rr]_\lambda' & & TS
+}
+\]
+Let $U$ be a closed set in $T^2(X)$.  Each element of $U$ can be represented by $(M_i, (f_{i1}, f_{i2}))$, where $f_{i1}:M_i->FAC(\{0,1\}^\infty)$ is a function that sends a $w$ in $M_i$ to another antichain, $N_i^w$, and $f_{i2}$ takes a $w$ in $M_i$ and outputs a function $g:N_i^w->X$.
+\begin{align*}
+\lambda'_X\circ S\mu^T (U) &= \lambda'_X \Bigl(\overline{\{(\bigcup_{w\in M_i} \Min(\ua w\ \cap \ua f_{i1}(w)), z\mapsto (f_{i2}(z))(z))\}_i}\Bigr) \\
+&= \Bigl(\bigsqcup_i\bigl(\bigcup_{w\in M_i} \Min(\ua w\ \cap \ua f_{i1}(w))\bigr), z\mapsto\overline{\bigcup_i (f_{i2}(z))(z)}\Bigr) \tag{1}
+\end{align*}
+\begin{align*}
+\mu^T S\circ T\lambda'_X\circ\lambda'_X T (U) &= \mu^T S\circ T\lambda'_X\Bigl(\bigsqcup_i M_i,w\mapsto\overline{ \bigcup_i (f_{i1}\circ\pi_{M_i}(w), f_{i2}(w))}\Bigr) \\
+&= \mu^T S \Bigl(\bigsqcup_i M_i, w\mapsto\bigl(\bigsqcup_i  f_{i1}\circ\pi_{M_i}(w), z\mapsto \overline{ \bigcup_i(f_{i2}(w))(z)}\bigr)\Bigr) \\
+&= \Bigl(\bigcup_{w\in \sqcup_i M_i} \Min(\ua w\ \cap \ua \bigsqcup_i  f_{i1}\circ\pi_{M_i}(w)), z\mapsto\overline{\bigcup_i (f_{i2}(z))(z)}\Bigr) \\
+&= \Bigl(\bigcup_{w\in \sqcup_i M_i} \bigsqcup_i\ \Min(\ua w\ \cap \ua f_{i1}\circ\pi_{M_i}(w)), z\mapsto\overline{\bigcup_i (f_{i2}(z))(z)}\Bigr) \tag{2}
+\end{align*}
+It must be shown that the antichains of (1) and (2) are equal.  Clearly, they are both above the antichain $\bigsqcup_i M_i$.  Now fix an arbitrary $z$ in $\bigsqcup_i M_i$.  We can just show that the portions of (1) and (2) above $z$ are equal.  For (2), this portion is clearly
+\[\bigsqcup_i\ \Min(\ua z\ \cap \ua f_{i1}\circ\pi_{M_i}(z))\]
+In (1), for each $i$, there is only one $w\in M_i$ that can contribute to the portion above $z$.  This is the unique $w$ below $z$, $\pi_{M_i}(z)$.  Plugging this in gives the equality.
+\item[{[}$\boldsymbol{\lambda'\circ\mu^S T = T\mu^S\circ \lambda' S\circ S\lambda'}${]}] \hfill \\
+\[
+\xymatrix{
+SST\ar[r]^{S\lambda'}\ar[d]_{\mu^S T} & STS\ar[r]^{\lambda' S} & TSS\ar[d]^{T\mu^S} \\
+ST\ar[rr]_\lambda' & & TS
+}
+\]
+Let $\{\{(M_{ij},f_{ij})\}_j\}$ be a closed set of closed sets in $T(X)$.
+\begin{align*}
+\lambda'_X\circ\mu^S T (\{\{(M_{ij},f_{ij})\}_j\}) &= \lambda'_X\Bigl(\overline{ \bigcup_{i,j}(M_{ij},f_{ij}) }\Bigr) \\
+&= \Bigl(\bigsqcup_{i,j} M_{ij}, w\mapsto\overline{\bigcup_{i,j} f_{ij}\circ \pi_{M_{ij}}(w)}\Bigr)
+\end{align*}
+\begin{align*}
+T\mu^S\circ \lambda'_X S\circ S\lambda'_X (\{\{(M_{ij},f_{ij})\}_j\}) &= T\mu^S\circ \lambda'_X S \Bigl(\overline{\bigl\{\bigl(\bigsqcup_i M_{ij},w\mapsto\overline{ \bigcup_i f_{ij}\circ \pi_{M_{ij}}(w)}\bigr)\bigr\}_j}\Bigr) \\
+&= T\mu^S \Bigl(\bigsqcup_j \bigsqcup_i M_{ij}, w\mapsto\overline{ \bigcup_j\overline{\bigcup_i f_{ij}\circ \pi_{M_{ij}}(w)}}\Bigr) \\
+&= \Bigl(\bigsqcup_{i,j} M_{ij}, w\mapsto\overline{\bigcup_{i,j} f_{ij}\circ \pi_{M_{ij}}(w)}\Bigr)
+\end{align*}
+\end{description} \hfill $\blacksquare$
+\end{proof}
+
+%\section{Distributive Law With the Upper Powerdomain}
+%
+%The random choice monad also enjoys a similar distributive law with the upper powerdomain in the category \textsf{BCD}.  The upper, or Smyth, powerdomain was also defined in Section \ref{powerdomains}.  For a domain $X$, it consists of the nonempty saturated compact sets of $X$, denoted $SC(X)$.  The unit of the lower powerdomain, $\eta:X\to SC(X)$ is defined by: \[\eta(x) = \ua x\]
+%The multiplication, $\mu:SC^2(X)\to SC(X)$ is defined as: \[\mu(S) = \bigcup_{U\in S} U\]
+%
+%Again, let $T$ be the random choice functor and let $S$ be the upper powerdomain.  Let $a$ be a morphism from $X$ to $Y$.  For a saturated, compact set, $U$, of $X$, $S(a)(U) = \ua \{a(u)|u\in U\}$.  Objects of $TS(X)$ are random variables $(M,f)$, with $f:M\to  SC(X)$.  Objects of $ST(X)$ are saturated, compact sets of random variables on $X$.  For $(M,f) \in TS(X)$, \[TS(a)(M,f) = (M,S(a)\circ f)\] For a saturated, compact set, $U$, of $ST(X)$, \[ST(a)(U) = \ua \{(M,a\circ f)|(M,f)\in U\}\]
+%
+%The distributive law with the upper powerdomain is essentially the same as the first distributive law with the lower powerdomain, but the lower sets and closure operations are replaced with upper sets.  Because of this, the verification of the distributive law will be omitted.  Define the natural transformation $\lambda:TS(X)\to ST(X)$ by:
+%\begin{displaymath}
+%\lambda(M,f) = \ua \{(M,g)|g(w)\in f(w), \forall w\in M\}
+%\end{displaymath}
+%
+%\begin{proposition}
+%There is a distributive law between the monad of random choice and the upper powerdomain, using the natural transformation $\lambda$.
+%\end{proposition}
+%
+Unfortunately, similar distributive laws do not hold for the upper powerdomain.  For the first distributive law with the lower powerdomain, it may seem natural to replace the lower set with the upper set to make it work with the upper powerdomain.  In this case, if $S$ is the upper powerdomain functor, then the natural transformation $\lambda:TS\to ST$ would be defined for an object $(M,f)$ in $TS(X)$ by:
+\begin{displaymath}
+\lambda_X(M,f) = \,\ua \{(M,g)\ |\ g(w)\in f(w), \forall w\in M\}
+\end{displaymath}
+This does satisfy the laws for the distributive law, but $\lambda_X$  is not necessarily monotone.  For example, suppose $a$ and $b$ are two incomparable elements of $X$.  Now consider two elements of $TS(X)$, $(\epsilon, f)$ and $(\{0,1\},g)$, where $f(\epsilon) = \ua a\ \cup \ua b$, $g(0) = \ua a$, and $g(1) = \ua b$.  Then, $(\epsilon, f) \sqsubseteq (\{0,1\},g)$.  If $\lambda_X$ were monotone, then 
+\[\lambda_X (\{0,1\},g) = \,\ua \{(\{0,1\},h)\ |\ h(0)\in\, \ua a, h(1)\in\, \ua b\} \subseteq\, \ua \{(\epsilon, \chi_x)\ |\ x\in\, \ua a\ \cup \ua b\} = \lambda_X (\epsilon, f)\]
+However, consider $(\{0,1\}, h)$, where $h(0)=a$ and $h(1)=b$.  Then $(\{0,1\}, h) \in \lambda_X (\{0,1\},g)$.  But if $(\{0,1\}, h) \in \lambda_X (\epsilon, f)$, then it is above some $(\epsilon, \chi_x)$.  Thus, $x\sqsubseteq a,b$, and since $a$ and $b$ do not compare, $x\notin\, \ua a\ \cup \ua b$.  Therefore, $\lambda_X$ is not monotone.
+
+In the second distributive law with the lower powerdomain, the first component of the natural transformation involves taking the supremum of the antichains from a Scott closed set of random choices.  For the upper powerdomain, there is an upper set of random choices, so the supremum of the antichains would always be the maximal antichain, $\{0,1\}^\omega$.  Another idea would be to take the infimum of the antichains.  However, using this natural transformation, one of the commutative diagrams for the distributive law does not hold.  We omit any further details, but in Section \ref{monadvariation}, we show how the monad can be altered to get a distributive law with the upper powerdomain.
+
+\section{Extending the Monad}
+
+\input{extend}

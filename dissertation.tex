@@ -1,0 +1,317 @@
+\documentclass[10pt]{TUT}
+%\usepackage{amsmath}
+\usepackage{amsthm}
+%\usepackage{amssymb}
+%\usepackage{geometry}
+%\usepackage[left=1.5in,right=1in,top=1in,bottom=1.5in]{geometry}
+\usepackage{float}
+%\usepackage{url}
+%\usepackage{setspace}
+%\usepackage{pdfdraftcopy}
+\usepackage{multirow}
+\usepackage{moreverb}
+\usepackage{enumerate}
+
+\usepackage{graphicx}
+\usepackage{amsmath,amsfonts,amssymb} % Math packages
+\usepackage[all]{xy}
+%\usepackage{xytree}
+\usepackage{semantic}
+\usepackage{array}
+\usepackage{tabulary}
+%\usepackage{setspace}
+
+\usepackage{listings}
+\usepackage{color}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+% "define" Scala
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+% "define" rPCF
+\lstdefinelanguage{rPCF}{
+  morekeywords={let, fn, rec, if, then, else, in, end},
+  otherkeywords={=>},
+  sensitive=true,
+  morecomment=[l]{//},
+}
+
+% "define" isabelle
+\lstdefinelanguage{isabelle}{
+  morekeywords={theory, imports, begin, datatype, context, typedef, by, where, lemma, apply, induct, rule, fun, definition},
+  sensitive=true,
+  escapeinside={*}{*},
+}
+
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+
+\lstset{
+  keywordstyle=\color{blue},
+  numberstyle=\tiny\color{mygray},
+  basicstyle=\ttfamily\singlespacing,
+  showstringspaces=false
+}
+
+%the following three are for the diagrams, the tikz diagrams
+%\usepackage{tikz}
+%\usepackage{verbatim}
+%\usetikzlibrary{arrows}
+
+%this, hopefully, will allow me to change the location of the arabic numerals
+%\usepackage{fancyhdr}
+
+\title{A Monad For Randomized Algorithms}
+\author{Tyler C. Barker}
+
+
+%the following 15-ish lines are BIERHORST additions, imported from mst-stylefile
+% \newtheorem{theorem}{\bf Theorem}[section]
+% \newtheorem{lemma}{\bf Lemma}[section]
+% \newtheorem{fact}{\bf Fact}[section]
+% \newtheorem{corollary}{\bf Corollary}[section]
+% \newtheorem{axiom}{\bf Axiom}[section]
+% \newtheorem{condition}{\bf Condition}[section]
+% \newtheorem{property}{\bf Property}[section]
+% \newtheorem{proposition}{\bf Proposition}[section]
+%
+% \newtheorem{@definition}{\bf Definition}[section]
+% \newenvironment{definition}{\begin{@definition}\rm}{\end{@definition}}
+%
+% \newtheorem{@example}{\bf Example}[section]
+% \newenvironment{example}{\begin{@example}\rm}{\end{@example}}
+%
+%\newtheorem{@nonexample}{\bf (Non)Example}[section]
+% \newenvironment{nonexample}{\begin{@nonexample}\rm}{\end{@nonexample}}
+%
+% \newtheorem{@remark}{\bf Remark}[section]
+% \newenvironment{remark}{\begin{@remark}\rm}{\end{@remark}}
+% 
+% \newtheorem{@claim}{\bf Claim}[section]
+% \newenvironment{claim}{\begin{@claim}\rm}{\end{@claim}}
+
+ \newtheorem{theorem}{\bf Theorem}[chapter]
+ \newtheorem{lemma}[theorem]{\bf Lemma}
+ \newtheorem{proposition}[theorem]{\bf Proposition}
+ \newtheorem{fact}[theorem]{\bf Fact}
+ \newtheorem{corollary}[theorem]{\bf Corollary}
+ \newtheorem{axiom}[theorem]{\bf Axiom}
+ \newtheorem{condition}[theorem]{\bf Condition}
+ \newtheorem{property}[theorem]{\bf Property}
+
+ \newtheorem{@definition}[theorem]{\bf Definition}
+ \newenvironment{definition}{\begin{@definition}\rm}{\end{@definition}}
+
+ \newtheorem{@example}[theorem]{\bf Example}
+ \newenvironment{example}{\begin{@example}\rm}{\end{@example}}
+
+\newtheorem{@nonexample}[theorem]{\bf (Non)Example}
+ \newenvironment{nonexample}{\begin{@nonexample}\rm}{\end{@nonexample}}
+
+ \newtheorem{@remark}[theorem]{\bf Remark}
+ \newenvironment{remark}{\begin{@remark}\rm}{\end{@remark}}
+ 
+ \newtheorem{@claim}[theorem]{\bf Claim}
+ \newenvironment{claim}{\begin{@claim}\rm}{\end{@claim}}
+ 
+ \newtheorem*{@proof}{\bf Proof}
+ \renewenvironment{proof}{\begin{@proof}\rm}{\end{@proof}}
+%\newtheorem*{proof}{\bf Proof}
+
+%end BIERHORST import from mst-stylefile
+
+\newcommand{\Nat}{{\mathbb N}}
+\newcommand{\Real}{{\mathbb R}}
+\newcommand{\Bool}{{\mathbb B}}
+\newcommand{\da}{\,\downarrow\!}
+\newcommand{\ua}{\,\uparrow\!}
+\newcommand{\Da}{\ensuremath{\rotatebox[origin=c]{-90}{$\twoheadrightarrow$}}}
+\newcommand{\Ua}{\ensuremath{\rotatebox[origin=c]{90}{$\twoheadrightarrow$}}}
+\newcommand{\vv}{\vspace{3 mm}}
+\newcommand{\supp}{\textrm{supp}}
+\newcommand{\Min}{\textrm{Min}}
+
+\newcommand{\rc}{\textrm{rc }}
+\newcommand{\Leaf}{\textrm{Leaf }}
+\newcommand{\Node}{\textrm{Node }}
+\newcommand{\pipe}{|\:}
+\newcommand{\true}{\textrm{tt }}
+\newcommand{\false}{\textrm{ff }}
+\newcommand{\Succ}{\textrm{succ }}
+\newcommand{\pred}{\textrm{pred }}
+\newcommand{\If}{\textrm{if }}
+\newcommand{\then}{\textrm{then }}
+\newcommand{\Else}{\textrm{else }}
+\newcommand{\zero}{\textrm{zero? }}
+
+\floatstyle{boxed}
+\newfloat{program}{thp}{lop}
+\floatname{program}{Program}
+
+\doublespacing
+
+\thesisform{dissertation}
+
+% The date of submission (OBSERVE THE STYLE!)
+\degreedate{the fifteenth day of april}
+
+% The year of the submission date
+\degreeyear{2016}
+
+% If you want the Copyright notice to be printed, give
+% the Copyright year, otherwise comment out or leave the year empty.
+%\copyrightyear{2008}
+
+% Your Department
+\department{department of mathematics}
+
+% The full (unabbreviated) name of the degree
+\degree{doctor of philosophy}
+
+% The name of your committee's chair
+\chair{Michael Mislove, ph.d.}
+
+% The names of your other committee members, one by one.
+% You may have up to SIX other members, ordered alphabetically.
+\membera{Rafal Komendarczyk, ph.d.}
+\memberb{Slawomir Kwasik, ph.d.}
+\memberc{Ramgopal Mettu, ph.d.}
+\memberd{Albert Vitter, ph.d.}
+
+
+\begin{document}
+
+
+
+% The following command gives the whole dissertation whoop-dee do.  obviously, must make it active at some point.
+%\maketitle
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
+\maketitle
+
+%the following was active under stephan - I bet this means "acknowledgements"
+%\include{ack}
+
+
+%
+
+
+%Junew
+\frontmatter
+\setcounter{page}{2}
+
+\chapter*{Acknowledgments}
+%\thispagestyle{plain}
+%\vspace*{4cm}
+%\begin{center}
+%{\large\bf Acknowledgments}
+%\end{center}
+I would first and foremost like to thank my thesis advisor, Michael Mislove.  His guidance was instrumental in shaping my research and the writing of this thesis.  My time as a graduate student was a tremendous experience.  Mike gave me the freedom to direct my own research, which was difficult at times.  It was a struggle to find a research problem, but it made it much more rewarding in the end. 
+
+At Tulane, I was able to travel around the world to conferences and workshops, meeting the foremost experts in my field.  I would like to thank everyone that I have met who has expressed interest in my work.  I also would like to thank all of the mathematicians and computer scientists whose work preceded my own.  I especially thank Dana Scott and Jean Goubault-Larrecq.  Their work provided the foundation for this thesis, and they have been graciously willing to discuss ideas with me.
+
+Finally, I would like to thank my parents, Gary and Carol, and my brothers, Travis and Todd, for their continued love and support throughout this entire process.  Growing up with my family led me to where I am today.  I do not yet know what the future holds for me, but I know that my family will be there to support me at every step.
+\section*[Acknowledgments]{}
+\thispagestyle{plain}
+\newpage
+\pagestyle{plain}
+%\frontmatter
+%\setcounter{page}{3}
+\tableofcontents
+% don't forget the abstract!
+
+
+%Bierhorst used the following once to try to get the pagination right
+%\clearpage
+%\setcounter{page}{1}
+
+%Junew
+
+\listoffigures
+\section*[List of Figures]{}
+\thispagestyle{plain}
+
+\listoftables
+\section*[List of Tables]{}
+\thispagestyle{plain}
+
+
+\pagestyle{headings}
+\mainmatter
+
+\chapter{Introduction and Background}\label{chap:introduction}
+\include{intro}
+
+%\chapter{Motivation}\label{chap:motiv}
+
+\chapter{A Monad of Random Choice}\label{chap:monad}
+%\include{motiv}
+\include{monad}
+
+%\chapter{More About the Kleisli Extension}\label{chap:kleisli}
+%\include{kleisli}
+
+\chapter{Distributive Laws and Variations on the Monad}\label{chap:distrib}
+\include{distrib}
+
+%\chapter{Extending the Monad}\label{chap:extend}
+%\include{extend}
+
+\chapter{Randomized PCF}\label{chap:semantics}
+\include{semantics}
+
+\chapter{Implementation in Functional Programming}
+\label{chap:func}
+\include{implementation}
+
+
+\appendix
+\chapter{Source Code}
+\include{appendix}
+
+\phantomsection
+\renewcommand\bibname{References}
+%\addcontentsline{toc}{chapter}{\bibname}
+
+\bibliographystyle{ieeetr}
+\bibliography{MFPS}
+%\include{biblio}
+
+%\newpage
+%\vspace*{4cm}
+
+%\begin{center}
+%{\large\bf Biography}
+%\end{center}
+
+\chapter*{Biography}
+
+The author was born in Metairie, LA in 1987 and raised in Marrero, LA.  From 2005 to 2009, he attended Louisiana State University, graduating with a B.S. in mathematics and a B.S. in computer science.  In 2009, the author entered the mathematics Ph.D. program at Tulane University.  He earned an M.S. in mathematics in 2011 before finishing the Ph.D. program in May 2016. 
+
+\end{document}
+
+

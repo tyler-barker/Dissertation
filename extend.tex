@@ -1,0 +1,781 @@
+%\chapter{Extending the Monad}
+
+As has been shown, the random choice functor is a monad on the category \textsf{BCD}.  However, only two of the nondeterministic powerdomains (the upper and lower) leave \textsf{BCD} invariant.  \textsf{BCD} is not closed under the convex powerdomain, but the Cartesian closed categories \textsf{RB} and \textsf{FS}, which contain \textsf{BCD}, are.  The random choice monad is not believed to stay within these categories, since we see no way to construct the required deflations.  In \textsf{BCD}, infima can be used, but outside of \textsf{BCD}, infima are not guaranteed.  One way to repair this is to not only define the functions on antichains, but instead to define them on the Scott closure, or lower set, of these antichains.  This way, there is no need for infima to project down to smaller trees, since the function is already defined on the lower set. 
+
+In our original monad, antichains in the Cantor tree are used, representing the possible outcomes of a random computation.  Now we change this monad to include not only antichains of words, but also the prefixes of these words.  These prefixes represent intermediate stages of computation where more random bits are still needed.
+
+\begin{definition}
+A Scott-closed set $M$ in $\{0,1\}^\infty$ is \emph{full} if $\forall w\in M, w*0 \in M \Leftrightarrow w*1 \in M$.  Denote the family of nonempty, full Scott-closed subsets of $\{0,1\}^\infty$ by $\Gamma_{f}(\{0,1\}^\infty)$.
+\end{definition}
+
+$\Gamma_f(\{0,1\}^\infty)$, ordered by inclusion, is a subposet of the lower powerdomain of $\{0,1\}^\infty$.  If a poset is a dcpo, domain, or bounded complete domain, then so is the lower powerdomain of that poset.  The supremum of some nonempty subset $\{M_i\}$ is simply the closure of the union, $\overline{\bigcup_i M_i}$.
+
+\subsection[Properties of $\Gamma_{f}(\{0,1\}^\infty)$]{Properties of $\boldsymbol{\Gamma_{f}(\{0,1\}^\infty)}$}
+
+\begin{proposition}\label{extendeddcpo}
+$\Gamma_{f}(\{0,1\}^\infty)$ is a dcpo.
+\end{proposition}
+\begin{proof}
+A directed set $\{M_i\}$ in $\Gamma_{f}(\{0,1\}^\infty)$ is also a directed set in the lower powerdomain, $\Gamma(\{0,1\}^\infty)$.  This directed set has a supremum, $\overline{\bigcup_i M_i}$.  All that needs to be shown is that this supremum is full.  The closure only adds infinite words, and infinite words do not affect whether a closed set is full or not.  If $w*0\in \overline{\bigcup_i M_i}$, then there is some $i$ such that $w*0 \in M_i$.  Since $M_i$ is full, then $w*1$ is in $M_i$, and therefore, $w*1 \in \overline{\bigcup_i M_i}$.  If $w*1\in \overline{\bigcup_i M_i}$ the same argument shows that $w*0$ is as well.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}\label{ExtendedLattice}
+$\Gamma_{f}(\{0,1\}^\infty)$ is a complete lattice.
+\end{proposition}
+\begin{proof}
+Again, the supremum of any nonempty subset is the closure of the union.  The same argument from Proposition \ref{extendeddcpo} proves that this supremum is a full Scott-closed set.  The closed set, $\{\epsilon\}$, only containing the empty word, serves as the bottom element.  The infimum of any nonempty subset is the intersection.  The intersection of closed sets is again closed, and since any closed set contains the empty word, the intersection is nonempty.
+\hfill $\blacksquare$
+\end{proof}
+
+For any full Scott-closed subset, $M$, and any natural number $n$, a projection of $M$ can be made to a Scott-closed set of words with length less than or equal to $n$.  A proposition similar to Theorem \ref{AntichainProjections} will be useful.
+
+\begin{proposition}\label{ExtendedProjections}
+Let $M$ be in $\Gamma_{f}(\{0,1\}^\infty)$.  Then $M = \bigsqcup_n \pi_n(M)$, where $\pi_n(M)$ is the subset of all words in $M$ of length less than or equal to $n$.
+\end{proposition}
+
+\begin{lemma}
+The finite elements of $\Gamma_{f}(\{0,1\}^\infty)$ are precisely the finite full Scott closed subsets.
+\end{lemma}
+\begin{proof}
+A finite subset only has a finite number of elements below it, so it is clearly way below itself.  If a subset contains an infinite word, then from the above proposition, it is the supremum of some of its finite subsets, so it cannot be way below itself.
+\hfill $\blacksquare$
+\end{proof}
+Now the following proposition is clear.
+
+\begin{proposition}
+$\Gamma_{f}(\{0,1\}^\infty)$ is an algebraic domain.
+\end{proposition}
+\begin{proof}
+From Proposition \ref{ExtendedProjections}, each element $M$ is the supremum of the set containing $\pi_n(M)$ for each natural number $n$.  Each $\pi_n(M)$ is finite, so $M$ is the supremum of finite elements below it.  Also, the set of finite elements below some $M$ is clearly directed since the supremum of two finite full Scott closed sets is simply their union, which must also be finite.
+ 
+ \hfill $\blacksquare$
+\end{proof}
+
+\begin{corollary}
+$\Gamma_{f}(\{0,1\}^\infty)$ is a bounded complete domain.
+\end{corollary}
+\begin{proof}
+From Proposition \ref{ExtendedLattice}, $\Gamma_{f}(\{0,1\}^\infty)$ is a complete lattice, and from the previous proposition, it is a continuous lattice.  Therefore, it is a bounded complete domain.
+\hfill $\blacksquare$
+\end{proof}
+
+\subsection{The Extended Functor}
+
+Now we define the extended functor, which is the same as the previous one except the antichains are replaced with Scott closed sets.
+\begin{definition}
+For a category of domains, functor $RC'$ is now defined on objects by  \[RC'(D) = \{(M,f)\ |\ M\in \Gamma_{f}(\{0,1\}^\infty), f:M\rightarrow D \textrm{ is Scott continuous} \}\]
+\end{definition}
+For $a:D\rightarrow D'$ and $(M,f) \in RC'(D)$, we define \[RC'(a)(M,f) = (M,a\circ f)\]
+$RC'(D)$ is ordered by $(M,f)\sqsubseteq (N,g)$ iff $M\subseteq N$ and $f(w) \leq g(w), \forall w\in M$.
+
+Any element $(M,f)$ in $RC'(D)$ can be extended to a bigger Scott closed set $N$ in a minimal way.  This represents a situation when you are given more random bits than you need.  Getting the extra bits builds up the binary tree but does not change the second component, the function.  Thus, for this portion of the binary tree, the function is constant.
+\begin{lemma}
+Suppose $(M,f)$ is in $RC'(D)$.  For any $N$ such that $M\subseteq N$, there is a least element $(N,\overline{f})$ such that $(M,f) \sqsubseteq (N,\overline{f})$.  The function $\overline{f}$ is defined by $\overline{f}(w) = f\circ \pi_M(w)$.
+\end{lemma}
+\begin{proof}
+Since $M\subseteq N$, $(M,f) \sqsubseteq (N,\overline{f})$ if $f(w) \sqsubseteq \overline{f}(w)$ for all $w\in M$.  To minimize $\overline{f}$, $f(w)$ should equal $\overline{f}(w)$ for $w$ in $M$.  This is true for the given function since $f\circ \pi_M(w) = f(w)$.  The function $\overline{f}$ must defined on all of $N$, and since it must be monotone, the smallest it can be for a given $w$ is $f\circ \pi_M(w)$.  This is clearly Scott continuous if $f$ is.
+\hfill $\blacksquare$
+\end{proof}
+
+Now it is shown that the extended $RC'$ is still a functor in the category of dcpo's.
+\begin{proposition}
+If $D$ is a dcpo, then $RC'(D)$ is also a dcpo.
+\end{proposition}
+\begin{proof}
+Let $\{(M_i,f_i)\}$ be a directed set in $RC'(D)$.  The Scott closed sets are ordered by inclusion, so the first component of the supremum must be $\overline{\bigcup_i M_i}$.  The supremum of the directed family must be above each $(M_i,f_i)$, and therefore it must be above $(\overline{\bigcup_i M_i}, \overline{f_i})$ for each $i$, as defined in the previous lemma.  Since now the Scott closed set is fixed, the order is solely determined by the pointwise order of the functions.  The Scott continuous functions between two dcpos also form a dcpo, so the functions have a supremum, $f$, defined by $f(w) = \bigsqcup_i \overline{f_i}(w)$.
+\hfill $\blacksquare$
+\end{proof}
+
+Any full Scott closed set of $\{0,1\}^\infty$ can be viewed as a subdomain of $\{0,1\}^\infty$.  This subdomain is also bounded complete.  This fact is useful to show that for a fixed $M$, the set of all $(M,f)$ in $RC'(D)$ is a bounded complete domain if $D$ is a bounded complete domain.  This is since each $f$ is a function from $M$ to $D$, and \textsf{BCD} is Cartesian closed. 
+\begin{lemma}
+Any element of $\Gamma_{f}(\{0,1\}^\infty)$ is itself a bounded complete domain.
+\end{lemma}
+\begin{proof}
+$\{0,1\}^\infty$ is a bounded complete domain.  An element $M$ in $\Gamma_{f}(\{0,1\}^\infty)$ is Scott closed, so it is a dcpo.  As a lower set, for any $w$ in $M$, $\Da w \subseteq M$, so $M$ is a domain.  Also, any nonempty subset of $M$ has an infimum which must also be in $M$, so $M$ is bounded complete.
+\hfill $\blacksquare$
+\end{proof}
+
+The following lemma is obvious.
+\begin{lemma}
+Let $M$ be in $\Gamma_{f}(\{0,1\}^\infty)$.  Now define $\pi_M$ so that $\pi_M(N,g) = (M\cap N, g)$ where $g$ is restricted to the domain $M\cap N$.  Then $\pi_M$ is Scott continuous and if $(M,f) \sqsubseteq (N,g)$ then $(M,f) \sqsubseteq \pi_M(N,g)$.
+\end{lemma}
+
+Again, if $M$ is fixed, then the set of all $(M,f)$ in $RC'(D)$ is simply the function space $[M\to D]$.  
+\begin{lemma}
+Suppose $D$ is in a Cartesian closed category of domains and $M$ is a finite element of $\Gamma_{f}(\{0,1\}^\infty)$.  For continuous functions $f,g:M->D$, if $f\ll g$ in $[M->D]$, then $(M,f) \ll (M,g)$.
+\end{lemma}
+\begin{proof}
+Let $\{(M_i,f_i)\}$ be a directed family such that $(M,g) \sqsubseteq \bigsqcup_i (M_i,f_i)$.  Then $\{\pi_M(M_i,f_i)\}$ is directed with a supremum above $(M,g)$.  This supremum has $M$ as its first component, and since $M$ is finite, there must be a cofinal subset of the directed family all with $M$ as its first component.  With $M$ fixed, the order is the pointwise order of the functions.  Thus, for a directed set $\{(M,g_i)\}$ with supremum above $(M,g)$, there is an element above $(M,f)$.  This element is of the form $\pi_M(M_i,f_i)$ for some $i$, so $(M_i,f_i)$ is also above $(M,f)$.
+\hfill $\blacksquare$
+\end{proof}
+\begin{corollary}
+If $(N,g)\ll (M,f)$, then $N$ is finite and $g\ll f$ where $g$ and $f$ are both viewed as functions in $[N\to D]$.
+\end{corollary}
+
+In the functor using antichains, it was shown that every element $(M,f)$ is the supremum of all $\pi_n(M,f)$, the projections to antichains with words of length at most $n$.  An analogous result is shown here. 
+\begin{lemma}
+For $(M,f)$ in $RC'(D)$, $(M,f) = \bigsqcup_n \pi_n(M,f)$, where $\pi_n(M,f) = (\pi_n(M), f)$ and $\pi_n(M)$ is the subset of $M$ only containing words of length at most $n$.
+\end{lemma}
+\begin{proof}
+\begin{align*}
+\bigsqcup_n \pi_n(M,f) &= (\bigcup_n \pi_n(M), w\mapsto \bigsqcup_n f\circ \pi_{\pi_n(M)}(w)) \\
+&= (M, w\mapsto f(\bigsqcup_n \pi_{\pi_n(M)}(w))) \\
+&= (M, w\mapsto f(w)) \\
+&= (M,f) 
+\end{align*}
+This is true since $f$ is Scott continuous and every word is the supremum of its finite prefixes.
+\hfill $\blacksquare$
+\end{proof}
+
+Now we can show that $RC'$ is an endofunctor in our desired categories of domains.
+\begin{proposition}
+If $D$ is in \textsf{BCD}, \textsf{RB}, or \textsf{FS}, then $RC'(D)$ is a domain.
+\end{proposition}
+\begin{proof}
+Each $(M,f)$ is supremum of $\pi_n(M,f)$ for all $n$.  For a fixed $n$, $\pi_n(M)$ is a bounded complete domain, so $[\pi_n(M)->D]$ is a domain (since we are in a Cartesian closed category of domains).  Thus $f$ restricted to $\pi_n(M)$ is the supremum of all functions way below it.  Therefore:  \[(M,f) = \bigsqcup_n \{(\pi_n(M), g_n)\ |\ g_n\ll f)\}\] and all such elements are way below $(M,f)$ so $(M,f) = \bigsqcup \Da (M,f)$.  
+
+Now we must show that $\Da (M,f)$ is directed.  Consider $(N,g)$ and $(L,h)$, both way below $(M,f)$.  Then $N$ and $L$ are finite subsets of $M$, and $g$ and $h$ are way below $f$ when restricted to their domains.  For the first component, we can form $N\cup L$, which is also a finite subset of $M$.  Now extend both $g$ and $h$ in the standard way to get $\overline{g}$ and $\overline{h}$.  These are both way below $f$ restricted to $N\cup L$.  Both $N\cup L$ and $D$ are domains, so their function space, $[N\cup L\to D]$, must also be a domain (again, since we are in a CCC of domains).  Thus, the set of functions way below $f$ is directed, so there is an $i$ way below $f$ and above both $\overline{g}$ and $\overline{h}$.  Therefore, $(N\cup L, i)$ is way below $(M,f)$ and is above $(N,g)$ and $(L,h)$, proving that $\Da (M,f)$ is directed.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{theorem}
+$RC'$ is an endofunctor in the category \textsf{BCD}
+\end{theorem}
+\begin{proof}
+All that is left to show is that $RC'(D)$ is bounded complete.  Let $\{(M_i,f_i)\}$ be a nonempty subset in $RC'(D)$.  Then the infimum is $(\bigcap_i M_i, \inf_i f_i)$.  Restricting each $f_i$ to $\bigcap_i M_i$ gives a set of functions between two bounded complete domains.  Since \textsf{BCD} is Cartesian closed, the function space is also bounded complete, so the set of functions has an infimum.
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{theorem}
+$RC'$ is an endofunctor in the category \textsf{RB}
+\end{theorem}
+\begin{proof}
+If $D$ is in \textsf{RB}, there is a directed family of deflations $\{d_i\}$ whose supremum is the identity.  For each $(M,f)$ in $RC'(D)$, $(M,f) = \bigsqcup_n \pi_n(M,f)$.  Then $RC'(d_i)\circ \pi_n$, where for each $(M,f)$, $\bigl(RC'(d_i)\circ \pi_n\bigr)(M,f) = (\pi_n(M), d_i\circ f)$ is a deflation, and the supremum of all such deflations is the identity.  Thus, $RC'(D)$ is in \textsf{RB}.
+\hfill $\blacksquare$
+\end{proof}
+
+Another characterization of the category \textsf{FS} from \cite{jung1989cartesian} will be helpful to show that $RC'$ is an endofunctor in the category.
+
+\begin{definition}
+Let $D$ be a dcpo and $G\subseteq [D->D]$ be a set of functions below $\textsf{id}_D$.  Then $G$ is \emph{finitely separating} if given a finite sequence $(x_1,\ldots, x_n)\in D^n$ and corresponding sequence $(y_1,\ldots, y_n)$, where $y_i\ll x_i$, there is an element $f$ of $G$ which satisfies $y_i\sqsubseteq f(x_i)\sqsubseteq x_i$ for all $i$.
+\end{definition}
+
+\begin{theorem}
+A domain is in \textsf{FS} if and only if the set of deflations is finitely separating.
+\end{theorem}
+%
+%\begin{theorem}
+%A dcpo $D$ is in \textsf{FS} if and only if the set $G$ of deflations way below the identity is directed and $\sqcup G$ equals the identity.
+%\end{theorem}
+
+\begin{theorem}
+$RC'$ is an endofunctor in the category \textsf{FS}
+\end{theorem}
+\begin{proof}
+Suppose $D$ is in \textsf{FS}.  Let $\{(M_i, f_i)\}_i$ and $\{(N_i, g_i)\}_i$ be finite sequences in $RC'(D)$ such that $(N_i, g_i) \ll (M_i,f_i)$.  Then each $N_i$ is finite, and for any $w\in N_i$, $g_i(w) \ll f_i(w)$.  There are finitely many $N_i$ each with finitely many words $w$.  Thus, we can form the finite sequence $\{f_i(w)\ |\ w\in N_i\}_i$ along with the corresponding sequence $\{g_i(w)\ |\ w\in N_i\}_i$.  Since $D$ is in \textsf{FS}, there is a deflation $d$ such that $g_i(w)\sqsubseteq d\circ f_i(w) \sqsubseteq f_i(w)$ for all $i$ and $w\in N_i$.
+
+Now let $N = \bigcup_i N_i$.  Define the function $h:RC'(D)->RC'(D)$ by:
+\[h(M,f) = (M\cap N, d\circ f)\]
+This is a deflation since $N$ is finite and $d$ is a deflation.  $N_i=N_i\cap N \subseteq M_i\cap N \subseteq M_i$, so $(N_i,g_i)\sqsubseteq h(M_i,f_i) = (M_i\cap N, d\circ f_i) \sqsubseteq (M_i,f_i)$.  Therefore, the set of deflations in $RC'(D)$ is finitely separating, and $RC'(D)$ is in \textsf{FS}.
+\hfill $\blacksquare$
+\end{proof}
+
+\subsection{The Monad}
+
+For the monad construction, the unit is the same as before:  \[\eta(d) = (\epsilon, \chi_d)\]  When restricted to the maximal elements of a Scott closed tree, its leaves, our new Kleisli extension is the same as the previous Kleisli extension.	It is defined on each component by:
+\[\pi_1\circ h^\dagger(M,f) = M \cup (\bigcup_{w\in M} (\ua w \cap (\pi_1 \circ h\circ f(w))))\]
+
+\[((\pi_2\circ h^\dagger)(M,f))(z) = g(\pi_N(z))\]
+where $(N, g) = h\circ f\circ \pi_M(z)$.
+
+Using the notation introduced in Section \ref{notation}, the Kleisli extension can be defined as:
+\[\pi_1\circ h^\dagger(M,f) = M \cup (\bigcup_{w\in M} (\ua w \cap (h_1^f(w))))\]
+
+\[((\pi_2\circ h^\dagger)(M,f))(z) = (h_2^f(z))(z)\]
+
+\begin{proposition}
+$h^\dagger$ is monotone.
+\end{proposition}
+\begin{proof}
+For a given $h$, it must be shown that if $(M,f) \sqsubseteq (N,g)$, then $h^{\dagger}(M,f) \sqsubseteq h^{\dagger}(N,g)$.
+If $(M, f)\sqsubseteq (N, g)$, then $M\subseteq N$
+and $f(w)\leq g(w)$ for any 
+$w\in M$, and for the first component,
+\begin{align*}
+\pi_1\circ h^\dagger(M, f) &= M \cup (\bigcup_{w\in M} (\ua w \cap (\pi_1 \circ h\circ f(w)))) \\
+&\subseteq N \cup (\bigcup_{w\in M} (\ua w \cap (\pi_1 \circ h\circ f(w)))) \\
+&\subseteq N \cup (\bigcup_{w\in N} (\ua w \cap (\pi_1 \circ h\circ g(w)))) \\
+&= \pi_1\circ h^\dagger(N, g)
+\end{align*}
+
+Now we check the second component.  For any word $w\in(\pi_1\circ h^\dagger(M,f))$,
+we must show that $(\pi_2\circ h^\dagger(M,f))(w) \sqsubseteq (\pi_2\circ h^\dagger(N,g))(w)$.
+\begin{align*}
+(\pi_2\circ h^\dagger(M,f))(w) &= (\pi_2\circ h\circ f\circ\pi_M(w))(\pi_{\pi_1\circ h\circ f\circ\pi_M(w)}(w)) \\
+& \sqsubseteq (\pi_2\circ h\circ g\circ\pi_N(w))(\pi_{\pi_1\circ h\circ g\circ\pi_N(w)}(w)) \\ 
+&= (\pi_2\circ h^\dagger(N,g))(w)
+\end{align*} \hfill$\blacksquare$
+\end{proof}
+
+\begin{theorem}
+$h^{\dagger}$ is Scott continuous.
+\end{theorem}
+\begin{proof}
+It must be shown that $h^{\dagger}$ preserves directed suprema.  Let $\{(M_i,f_i)\}$ be a directed family in $RC'(D)$.  First, the first component is checked.
+\begin{align*}
+\bigsqcup_i \pi_1 \circ h^{\dagger}(M_i,f_i) &= 
+\bigsqcup_i \bigl(M_i \cup (\bigcup_{w\in M_i} (\ua w \cap (\pi_1 \circ h\circ f_i(w))))\bigr) \\
+&= \overline{\bigcup_i M_i \cup (\bigcup_{w\in M_i} (\ua w \cap (\pi_1 \circ h\circ f_i(w))))} \\
+&= \overline{(\bigcup_i M_i) \cup (\bigcup_i \bigcup_{w\in M_i} (\ua w \cap (\pi_1 \circ h \circ f_i(w))))} \\
+&= \overline{(\bigcup_i M_i) \cup (\bigcup_{w\in \cup_i M_i} \bigcup_i (\ua w \cap (\pi_1 \circ h \circ f_i(w))))} \\
+&= \overline{(\bigcup_i M_i) \cup (\bigcup_{w\in \cup_i M_i} (\ua w \cap \bigcup_i (\pi_1 \circ h \circ f_i(w))))} \\
+&= \overline{(\bigcup_i M_i) \cup (\bigcup_{w\in \cup_i M_i} (\ua w \cap (\pi_1 \circ h \circ (\bigsqcup_i f_i)(w))))} \\
+&= (\overline{\bigcup_i M_i}) \cup (\bigcup_{w\in \overline{\cup_i M_i}} (\ua w \cap (\pi_1 \circ h \circ (\bigsqcup_i f_i)(w)))) \\
+&= \pi_1\circ h^{\dagger}(\overline{\bigcup_i M_i}, \bigsqcup_i f_i)
+\end{align*}
+
+Now we check the second component.
+\begin{align*}
+\bigsqcup_i (\pi_2\circ h^{\dagger}(M_i,f_i))(w) 
+&= \bigsqcup_i (\pi_2\circ h\circ f_i\circ \pi_{M_i}(w))(\pi_{\pi_1\circ h\circ f_i \circ \pi_{M_i}}(w)) \\
+&=  \pi_2\circ h\circ \bigsqcup_i f_i\circ \pi_{M_i}(w))(\pi_{\pi_1\circ h\circ f_i \circ \pi_{M_i}}(w)) \\
+&= (\pi_2\circ h^{\dagger}(\sqcup_i M_i, \sqcup_i f_i))(w)
+\end{align*}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{theorem}
+This extended construction forms a monad.
+\end{theorem}
+\begin{proof}
+\begin{description}
+\item[{[}$\boldsymbol{h^\dagger\circ \eta = h}${]}] \hfill \\
+\begin{align*}
+\pi_1\circ h^\dagger\circ\eta(d) &= \pi_1\circ h^\dagger(\epsilon, \chi_d)) \\
+&= \epsilon \cup (\ua \epsilon \cap (\pi_1 \circ h(d))) \\
+&= \pi_1 \circ h(d)
+\end{align*}
+\begin{align*}
+(\pi_2\circ h^\dagger\circ\eta (d))(z) &= (\pi_2\circ h^\dagger(\epsilon, \chi_d))(z) \\
+&= (h_2^{\chi_d}(z))(z) \\
+&= (\pi_2\circ h(d))(z).
+\end{align*}
+\item[{[}$\boldsymbol{\eta^\dagger = \mathrm{id}}${]}] \hfill \\
+\begin{align*}
+\pi_1\circ\eta^\dagger(M,f) &= 
+M \cup (\bigcup_{w\in M} (\ua w \cap (\eta_{1}^{f}(w)))) \\
+&= M\cup (\bigcup_{w\in M} (\ua w \cap \epsilon)) \\
+&= M \cup \epsilon \\
+&= M
+\end{align*}
+since $\eta_1^f(w) = \epsilon$ for each $w$.
+\begin{align*}
+(\pi_2\circ \eta^\dagger)(M, f)(z) &= \eta_2^f(z)(z) \\
+&= \chi_{f(z)}(z) \\
+&= f(z)
+\end{align*}
+\item[{[}$\boldsymbol{k^\dagger\circ h^\dagger = (h^\dagger\circ h)^\dagger}${]}] \hfill \\
+Let $w$ be any maximal word in $M$.  The Kleisli extension can only make the first component larger.  We show that the portion above each $w$ is equal in both cases.
+\begin{align*}
+\ua\! w\!\cap\! (\pi_1\!\circ\! k^\dagger\!\circ\! h^\dagger (M,f)) 
+&= w \cup (\ua w \cap h^{f}_{1}(w))\cup (\!\!\!\!\bigcup_{z\in w\cup (\ua w \cap h^{f}_{1}(w))}\!\!\!\! 
+(\ua z \cap k_{1}^{h_{2}^{f}(z)}(z))) \\
+&= w\! \cup\! (\ua\! w \cap h^{f}_{1}(w))\cup (\ua\! w \cap k_{1}^{h_{2}^{f}(w)}(w))\cup\!\!\!\!\!\!\bigcup_{z\in \ua w \cap h^{f}_{1}(w)}\!\!\!\!\!\! 
+(\ua\! z \cap k_{1}^{h_{2}^{f}(z)}(z))\tag{1}
+\end{align*}
+\begin{align*}
+\ua w\cap (\pi_1\circ (k^\dagger\circ h)^\dagger (M,f))
+&= w\cup(\ua w\cap \pi_1\circ k^\dagger\circ h\circ f(w)) \\
+&= w\cup(\ua w\cap (h_1^f(w) \cup (\bigcup_{z\in h_1^f(w)}(\ua z\cap k_1^{h_2^f(w)}(z))))) \\
+&= w\cup(\ua w\cap (h_1^f(w)) \cup (\ua w \cap \bigcup_{z\in h_1^f(w)}(\ua z\cap k_1^{h_2^f(w)}(z))))) \\
+&= w\cup(\ua w\cap (h_1^f(w)) \cup (\bigcup_{z\in h_1^f(w)}(\ua w\  \cap \ua z\cap k_1^{h_2^f(w)}(z))))) \tag{2}
+\end{align*}
+Now we must show that (1) is equal to (2), or that
+\[
+(\ua\! w \cap k_{1}^{h_{2}^{f}(w)}(w))\cup\!\!\!\!\!\!\bigcup_{z\in \ua w \cap h^{f}_{1}(w)}\!\!\!\!\!\! 
+(\ua\! z \cap k_{1}^{h_{2}^{f}(z)}(z)) = 
+\bigcup_{z\in h_1^f(w)}(\ua w\  \cap \ua z\cap k_1^{h_2^f(w)}(z))))
+\]
+First suppose that $\ua w \cap h^{f}_{1}(w)$ is empty.  Then clearly, both sides are equal to $\ua w \cap k_{1}^{h_{2}^{f}(w)}(w)$.  Now assume the intersection is nonempty.  Then $w \in h^{f}_{1}(w)$.  Thus, for the left hand side, the first intersection is redundant.  On the right hand side, the union will only be determined by words $z$ above $w$.  In this case, $\ua w\ \cap \ua z = \ua z$.  Therefore, both sides are equal to 
+\[\bigcup_{z\in \ua w \cap h^{f}_{1}(w)} 
+(\ua z \cap k_{1}^{h_{2}^{f}(z)}(z))
+\]
+Finally, we have to check the functional component.
+\begin{align*}
+(\pi_2\circ k^\dagger\circ h^\dagger(M,f))(z) &= (k_2^{h_2^f(z)}(z))(z)
+\end{align*}
+\begin{align*}
+(\pi_2\circ (k^\dagger\circ h)^\dagger(M,f))(z) &= ((k^\dagger\circ h)_2^f(z))(z) \\
+&= (\pi_2\circ k^\dagger\circ h\circ f(\pi_M(z)))(z) \\
+&= (\pi_2\circ k^\dagger(h_1^f(w),h_2^f(w)))(z) \\
+&= (k_2^{h_2^f(z)}(z))(z)
+\end{align*} 
+\end{description}\hfill $\blacksquare$
+\end{proof}
+
+\section{Distributive Law With the Convex Powerdomain}
+
+Recall that the convex powerdomain of a coherent domain $X$ consists of $Lens(X)$, the nonempty lenses of $X$.  For a nonempty compact $K\subseteq X$, define the \emph{lens closure} of $K$ by $\langle K\rangle = \overline{K}\ \cap \ua K$.  The lens closure 
+$\langle K\rangle$ is the smallest lens containing $K$.
+
+We now show that the random choice monad enjoys a distributive law with the convex powerdomain in the categories \textsf{RB} and \textsf{FS}.  Again, we let $T$ be the random choice monad and let $S$ be the convex powerdomain.  The unit of the convex powerdomain, $\eta:X\to S(X)$ is defined by: \[\eta(x) = \{x\}\]
+The multiplication, $\mu:S^2(X)\to S(X)$ is defined as: \[\mu(S) = \langle \bigcup_{U\in S} U\rangle\]
+
+Let $a$ be a morphism from $X$ to $Y$.  For a lens, $U$, of $X$, $S(a)(U) = \langle\{a(u)|u\in U\}\rangle$.  Objects of $TS(X)$ are random variables $(M,f)$, with $f:M\to Lens(X)$.  Objects of $ST(X)$ are lenses of random variables on $X$.  For $(M,f) \in TS(X)$, 
+\begin{align*}
+TS(a)(M,f) &= (M,S(a)\circ f) \\
+&= (M, w\mapsto \langle\{a(u)|u\in f(w)\}\rangle)
+\end{align*}
+For a lens, $U$, of $ST(X)$, \[ST(a)(U) = \Bigl\langle \{(M,a\circ f)\ |\ (M,f)\in U\}\Bigr\rangle\]
+
+Suppose $U \in ST(X)$.  Define the natural transformation,
+$\lambda : ST\rightarrow TS$, so that for an object $U$ in $ST(X)$:
+\[\lambda_X (U) = \Bigl(\overline{\bigcup_{(M,f)\in U} M}, w\mapsto\Bigl\langle\bigcup_{(M,f)\in U} f\circ \pi_M(w) \Bigr\rangle\Bigr)\]
+
+A lemma found in \cite{berger2010domain} is very helpful in proving the distributive law.
+\begin{lemma}
+If $a:X\rightarrow Y$ is continuous, then for any compact $K\subseteq X$, $\langle a(K)\rangle = \langle a(\langle K\rangle)\rangle$.
+\end{lemma}
+Now we show $\lambda$ is a natural transformation in the relevant categories.
+\begin{proposition}
+For any domain, $X$, $\lambda_X:ST(X)\to TS(X)$ is monotone.
+\end{proposition}
+\begin{proof}
+If $U\sqsubseteq_{EM} V$ for two sets in $ST(X)$, we must show that \[\lambda_X(U) = (\overline{\bigcup_{(M,f)\in U} M}, w\mapsto\Bigl\langle\bigcup_{(M,f)\in U} f\circ \pi_M(w) \Bigr\rangle) \sqsubseteq (\overline{\bigcup_{(N,g)\in V} N},z\mapsto\Bigl\langle\bigcup_{(N,g)\in V} g\circ \pi_N(z) \Bigr\rangle) = \lambda_X(V)\]
+For any $(M,f)\in U$, there must be some $(N,g)\in V$ above it so that $M\subseteq N$.  Therefore, $\overline{\bigcup_{(M,f)\in U} M} \subseteq \overline{\bigcup_{(N,g)\in U} M}$.  For the second component, we must show that
+\begin{align*}
+\Bigl\langle\bigcup_{(M,f)\in U} f\circ \pi_M(w) \Bigr\rangle &\sqsubseteq_{EM}
+\Bigl\langle\bigcup_{(N,g)\in V} g\circ \pi_N(w) \Bigr\rangle \\
+\end{align*}
+for any $w$ in $\overline{\bigcup_{(M,f)\in U}M}$.  First we show that
+\begin{align*}
+\bigcup_{(M,f)\in U} f\circ \pi_M(w) &\subseteq
+\,\da \Bigl(\bigcup_{(N,g)\in V} g\circ \pi_N(w)\Bigr) \\
+\end{align*}
+Again, for any $(M,f)\in U$ there is some $(N,g)\in V$ above it, so 
+$f\circ \pi_M(w) \sqsubseteq g\circ \pi_N(w)$.  Finally we show that 
+\begin{align*}
+\bigcup_{(N,g)\in V} g\circ \pi_N(w) &\subseteq
+\,\ua \Bigl(\bigcup_{(M,f)\in U} f\circ \pi_M(w)\Bigr) 
+\end{align*}
+For any $(N,g)\in V$ there is some $(M,f)$ below it, so 
+$g\circ \pi_N(w) \sqsupseteq f\circ \pi_M(w)$. 
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+For any domain, $X$, $\lambda_X:ST(X)\to TS(X)$ is Scott continuous.
+\end{proposition}
+\begin{proof}
+Let $\{U_i\}$ be a directed set in $ST(X)$.  Then the supremum is $\langle\bigcup_i U_i\rangle$.
+\begin{align*}
+\lambda_X\Bigl(\langle\bigcup_i U_i\rangle\Bigr) &= \Bigl(\bigsqcup_{(M,f)\in \langle\bigcup_i U_i\rangle} \!\!\!\!\!M,\ w\mapsto \Bigl\langle\bigcup_{(M,f)\in \langle\bigcup_i U_i\rangle}\!\!\! f\circ \pi_M(w)\Bigr\rangle\Bigr) \\ 
+&= \Bigl(\bigsqcup_i \bigsqcup_{(M,f)\in U_i} \!\!\!M,\ w\mapsto \Bigl\langle\bigcup_i \bigcup_{(M,f)\in U_i}\!\!\! f\circ \pi_M(w)\Bigr\rangle\Bigr)
+\end{align*}
+
+\begin{align*}
+\bigsqcup_i \lambda_X(U_i) &= \bigsqcup_i \Bigl(\bigsqcup_{(M,f)\in U_i} M, w\mapsto\Bigl\langle\bigcup_{(M,f)\in U_i} f\circ \pi_M(w)\Bigr\rangle\Bigr) \\
+&= \Bigl(\bigsqcup_i \bigsqcup_{(M,f)\in U_i} M, w\mapsto\Bigl\langle\bigcup_i \bigl\langle\bigcup_{(M,f)\in U_i} f\circ \pi_M(w)\bigr\rangle\Bigr\rangle\Bigr) \\
+&= \Bigl(\bigsqcup_i \bigsqcup_{(M,f)\in U_i} \!\!\!M,\ w\mapsto \Bigl\langle\bigcup_i \bigcup_{(M,f)\in U_i}\!\!\! f\circ \pi_M(w)\Bigr\rangle\Bigr)
+\end{align*}
+\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+$\lambda$ is a natural transformation.
+\end{proposition}
+\begin{proof}
+Again, if $\lambda$ is a natural transformation, then the following diagram must commute:
+
+\[
+\xymatrix{
+ST(X)\ar[r]^{ST(a)}\ar[d]_{\lambda_X} & ST(Y)\ar[d]^{\lambda_Y} \\
+TS(X)\ar[r]_{TS(a)} &TS(Y)
+}
+\]
+
+We check this here:
+\begin{align*}
+\lambda_Y\circ ST(a)(U) &= \lambda_Y \Bigl\langle\{(M,a\circ f)|(M,f)\in U\}\Bigr\rangle \\
+&= \Bigl(\overline{\bigcup_{(M,f)\in U} M}, w\mapsto\Bigl\langle\bigcup_{(M,f)\in U} (a\circ f\circ \pi_M(w))\Bigr\rangle\Bigr)
+\end{align*}
+\begin{align*}
+TS(a)\circ \lambda_X U &= TS(a) \Bigl(\overline{\bigcup_{(M,f)\in U} M}, w\mapsto \Bigl\langle\bigcup_{(M,f)\in U} f\circ \pi_M(w)\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_{(M,f)\in U} M}, w\mapsto\Bigl\langle a\bigl(\bigl\langle\bigcup_{(M,f)\in U} f\circ \pi_M(w)\bigr\rangle\bigr)\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_{(M,f)\in U} M}, w\mapsto\Bigl\langle a\bigl(\bigcup_{(M,f)\in U} f\circ \pi_M(w)\bigr)\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_{(M,f)\in U} M}, w\mapsto\Bigl\langle \bigcup_{(M,f)\in U} a\circ f\circ \pi_M(w)\Bigr\rangle\Bigr) \\
+\end{align*}\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+There is a distributive law between the monad of random choice and the convex powerdomain, using the natural transformation $\lambda$.
+\end{proposition}
+\begin{proof}
+\begin{description}
+\item[{[}$\boldsymbol{\lambda\circ S\eta^T = \eta^T S}${]}] \hfill \\
+\[
+\xymatrix{
+S\ar[r]^{S\eta^T}\ar[dr]_{\eta^T S} & ST\ar[d]^\lambda \\
+& TS
+}
+\]
+Let $U$ be an element of $S(X)$.
+\begin{align*}
+\lambda_X \circ S\eta^T (U) &= \lambda_X (\{(\epsilon, \chi_u)\ |\ u\in U\}) \\
+&= (\epsilon, \chi_U)
+\end{align*}
+\begin{align*}
+\eta^T S(U) &= (\epsilon, \chi_U)
+\end{align*}
+\item[{[}$\boldsymbol{\lambda\circ \eta^S T = T\eta^S}${]}] \hfill \\
+\[
+\xymatrix{
+T\ar[r]^{\eta^S T}\ar[dr]_{T\eta^S} & ST\ar[d]^\lambda \\
+& TS
+}
+\]
+Let $(M,f)$ be an element of $T(X)$.
+\begin{align*}
+\lambda_X \circ \eta^S T (M,f) &= \lambda_X (\{(M,f)\}) \\
+&= (M, w\mapsto\{f(w)\})
+\end{align*}
+\begin{align*}
+T\eta^S (M,f) &= (M,w\mapsto\{f(w)\})
+\end{align*}
+\item[{[}$\boldsymbol{\lambda\circ S\mu^T = \mu^T S\circ T\lambda\circ\lambda T}${]}] \hfill \\
+\[
+\xymatrix{
+STT\ar[r]^{\lambda T}\ar[d]_{S\mu^T} & TST\ar[r]^{T\lambda} & TTS\ar[d]^{\mu^T S} \\
+ST\ar[rr]_\lambda & & TS
+}
+\]
+Let $\{(M_i, (f_{i1}, f_{i2}))\}$ be an element of $STT(X)$.
+\begin{align*}
+\lambda_X\circ S\mu^T (\{(M_i, (f_{i1}, f_{i2}))\}) &= \lambda_X \Bigl(\Bigl\langle\{(M_i\cup \bigcup_{w\in M_i} \ua w \cap f_{i1}(w), f_{i2} \circ \pi_{M_i})\}\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_i\bigl(M_i\cup \bigcup_{w\in M_i} \ua w \cap f_{i1}(w)\bigr)}, z\mapsto\Bigl\langle\bigcup_i (f_{i2}\circ \pi_{M_i}(z))(z)\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigl(\bigcup_i M_i\bigr)\cup \bigl(\bigcup_i \bigcup_{w\in M_i} \ua w \cap f_{i1}(w)\bigr)}, z\mapsto\Bigl\langle\bigcup_i (f_{i2}\circ \pi_{M_i}(z))(z)\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigl(\bigcup_i M_i\bigr)\cup \bigl(\bigcup_{w\in \cup_i M_i} \bigcup_i (\ua w \cap f_{i1}(w))\bigr)}, z\mapsto\Bigl\langle\bigcup_i (f_{i2}\circ \pi_{M_i}(z))(z)\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_i M_i \cup \bigcup_{w\in \cup_i M_i}\bigl(\ua w \cap \bigcup_i f_{i1}(w)\bigr)}, z\mapsto\Bigl\langle\bigcup_i (f_{i2}\circ \pi_{M_i}(z))(z)\Bigr\rangle\Bigr)
+\end{align*}
+\begin{align*}
+\!\!\!\!\!\!\!\mu^T S\!\circ\! T\lambda_X\!\circ\!\lambda_X T (\{(M_i, (f_{i1}, f_{i2}))\}) &= \mu^T S\circ T\lambda_X\Bigl(\overline{\bigcup_i M_i},w\mapsto\Bigl\langle \bigcup_i (f_{i1}\circ\pi_{M_i}(w), f_{i2}\circ\pi_{M_i}(w))\Bigr\rangle\Bigr) \\
+&= \mu^T S \Bigl(\overline{\bigcup_i M_i}, w\mapsto\!\Bigl(\overline{\bigcup_i  f_{i1}\circ\pi_{M_i}(w)}, z\mapsto\! \Bigl\langle \bigcup_i(f_{i2} \circ \pi_{M_i}(w))(z)\Bigr\rangle\Bigr)\Bigr) \\
+&= \Bigl(\overline{\bigcup_i M_i \cup \bigcup_{w\in \cup_i M_i}\bigl(\ua w \cap \bigcup_i f_{i1}(w)\bigr)}, z\mapsto\Bigl\langle\bigcup_i (f_{i2}\circ \pi_{M_i}(z))(z)\Bigr\rangle\Bigr)
+\end{align*}
+\item[{[}$\boldsymbol{\lambda\circ\mu^S T = T\mu^S\circ \lambda S\circ S\lambda}${]}] \hfill \\
+\[
+\xymatrix{
+SST\ar[r]^{S\lambda}\ar[d]_{\mu^S T} & STS\ar[r]^{\lambda S} & TSS\ar[d]^{T\mu^S} \\
+ST\ar[rr]_\lambda & & TS
+}
+\]
+Let $\{\{(M_{ij},f_{ij})\}_j\}$ be an element of $SST(X)$.
+\begin{align*}
+\lambda_X\circ\mu^S T (\{\{(M_{ij},f_{ij})\}_j\}) &= \lambda_X\Bigl(\Bigl\langle \bigcup_{i,j}(M_{ij},f_{ij}) \Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_{i,j} M_{ij}}, w\mapsto\Bigl\langle\bigcup_{i,j} f_{ij}\circ \pi_{M_{ij}}(w)\Bigr\rangle\Bigr)
+\end{align*}
+\begin{align*}
+T\mu^S\circ \lambda_X S\circ S\lambda_X (\{\{(M_{ij},f_{ij})\}_j\}) &= T\mu^S\circ \lambda_X S \Bigl(\Bigl\langle\bigl\{\bigl(\overline{\bigcup_i M_{ij}},w\mapsto\Bigl\langle \bigcup_i f_{ij}\circ \pi_{M_{ij}}(w)\Bigr\rangle\bigr)\bigr\}_j\Bigr\rangle\Bigr) \\
+&= T\mu^S \Bigl(\overline{\bigcup_j \overline{\bigcup_i M_{ij}}}, w\mapsto\Bigl\langle \bigcup_j\Bigl\langle\bigcup_i f_{ij}\circ \pi_{M_{ij}}(w)\Bigr\rangle\Bigr\rangle\Bigr) \\
+&= \Bigl(\overline{\bigcup_{i,j} M_{ij}}, w\mapsto\Bigl\langle\bigcup_{i,j} f_{ij}\circ \pi_{M_{ij}}(w)\Bigr\rangle\Bigr)
+\end{align*}
+\end{description} \hfill $\blacksquare$
+\end{proof}
+
+\section{Another Variation of the Monad} \label{monadvariation}
+
+For the original random choice monad, it was shown that there is a distributive law with the lower powerdomain in both directions.  However, there was no distributive law with the upper powerdomain.  The problem lies in the first component of the random choice functor, the antichains.  We can get around this issue by modifying the order so that the antichains do not factor in.  In the original order, $(M,f) \sqsubseteq (N,g)$ if $M\sqsubseteq_{EM} N$ and for all $w\in M$ and $z\in N$ with $w\leq z$, $f(w)\sqsubseteq g(z)$.  Now consider a new order such that $(M,f) \sqsubseteq' (N,g)$ if for all $w\in M$ and $z\in N$ such that $w$ and $z$ are comparable, $f(w) \sqsubseteq g(w)$.  This is clearly not a partial order, but it is a preorder.  We can now form a partial order by making equivalence classes, where $(M,f)\equiv (N,g)$ if $f(w)=g(z)$ for all comparable $w\in M$ and $z\in N$.  Every element $(M,f)$ can be extended to $(\{0,1\}^\omega, \overline{f})$, where $\overline{f}(w) = f\circ \pi_M(w)$.  Therefore, every equivalence class has an element with $\{0,1\}^\omega$ as the first component.  Because of this, the new partial order is the same as just restricting $RC$ to the elements whose antichain is $\{0,1\}^\omega$.  With a fixed first component, the elements are merely functions $f:\{0,1\}^\omega\to D$, where $f$ is continuous in the relative Scott topology. Computationally, this represents getting the results of all random coin flips at once, instead of one by one.
+
+\subsection{The Functor}
+
+\begin{definition}
+For a category of domains, the functor $RC''$ is now defined on objects as  \[RC''(D) = [\{0,1\}^\omega -> D]\] where each function is continuous in the relative Scott topology. The order is simply the pointwise order.  For a morphism, $a:D\to E$,
+\[RC''(a)(f) = a\circ f\]
+\end{definition}
+For the initial $RC''$ functor, the supremum is taking componentwise:  $\bigsqcup_i (M_i, f_i) = (\bigsqcup_i M_i, \bigsqcup_i \overline{f_i})$.  Thus, the supremum for this new functor coincides with the original.  Now, as a subdomain of the first random choice functor, it is clear that given a dcpo, domain, or bounded complete domain, this functor outputs a dcpo, domain, or bounded complete domain, respectively.  Finite elements have a member with a finite antichain in its equivalence class.  Alternatively, for a finite $f$, there must be an finite open cover of $\{0,1\}^\omega$ such that $f$ is constant on each open set.  Every element is the supremum of functions that are eventually constant in this manner.
+
+\subsection{The Monad}
+
+The unit of the monad is simply the constant function:
+\[\eta(d) = \chi_d\]
+For a morphism $h:D\to RC''(E)$ the Kleisli extension is defined as:
+\[h^{\dagger}(f)(w) = (h\circ f(w))(w)\]
+Therefore, the multiplication of the monad is:
+\[\mu(f)(w) = (f(w))(w)\]
+
+\begin{theorem}
+The functor $RC''$ forms a monad.
+\end{theorem}
+\begin{proof} 
+Now the three monad laws are shown to hold.
+\begin{description}
+\item[{[}$\boldsymbol{h^\dagger\circ \eta = h}${]}] \hfill \\
+\begin{align*}
+h^\dagger\circ\eta(d) &= h^\dagger(\chi_d) \\
+&= w\mapsto (h\circ \chi_d(w))(w) \\
+&= w\mapsto (h\circ d)(w) \\
+&= h(d)
+\end{align*}
+\newpage
+\item[{[}$\boldsymbol{\eta^\dagger = \mathrm{id}}${]}] \hfill \\
+\begin{align*}
+\eta^\dagger(f) &= w\mapsto (\eta\circ f(w))(w) \\
+&= w \mapsto \chi_{f(w)}(w) \\
+&= w \mapsto f(w) \\
+&= f
+\end{align*}
+\item[{[}$\boldsymbol{k^\dagger\circ h^\dagger = (h^\dagger\circ h)^\dagger}${]}] \hfill \\
+\begin{align*}
+k^\dagger\circ h^\dagger(f) 
+&= k^\dagger(w\mapsto (h\circ f(w))(w)) \\
+&= z\mapsto (k\circ (h\circ f(z))(z))(z)
+\end{align*}
+\begin{align*}
+(k^\dagger\circ h)^\dagger (f)
+&= z\mapsto (k^\dagger\circ h\circ f(z))(z) \\
+&= z\mapsto (w\mapsto (k\circ (h\circ f(z))(w))(w))(z) \\
+&= z\mapsto (k\circ (h\circ f(z))(z))(z)
+\end{align*}
+\end{description} \hfill $\blacksquare$
+\end{proof}
+
+\section{Distributive Law With the Upper Powerdomain}
+
+Now let $S$ be the upper powerdomain functor and let $T$ be this newly defined random choice functor.  Define the natural transformation $\lambda:ST\to TS$ so that for a $U$ in $ST(X)$:
+\[
+\lambda_X(U) = w\mapsto \ua \{u(w)\ |\ u\in U\}
+\]
+\begin{proposition}
+For any bounded complete domain, $X$, $\lambda_X:ST(X)\to TS(X)$ is monotone.
+\end{proposition}
+\begin{proof}
+If $U\supseteq V$, then
+\begin{align*}
+\lambda_X(U) &= w\mapsto\, \ua \{u(w)\ |\ u\in U\} \\
+&\sqsubseteq w\mapsto\, \ua \{v(w)\ |\ v\in V\}) \\
+&= \lambda_X(V)
+\end{align*}\hfill $\blacksquare$
+\end{proof}
+\begin{proposition}
+For any bounded complete domain, $X$, $\lambda_X:ST(X)\to TS(X)$ is Scott continuous.
+\end{proposition}
+\begin{proof}
+Let $\{U_i\}$ be a directed family in $ST(X)$ with supremum $\bigcap_i U_i$.  Then
+\begin{align*}
+\bigsqcup_i \lambda_X(U_i) &= \bigsqcup_i (w\mapsto\, \ua \{u(w)\ |\ u\in U_i\}) \\ 
+&= w\mapsto \bigcap_i \ua \{u(w)\ |\ u\in U_i\} \\
+&= w\mapsto \,\ua \bigcap_i \{u(w)\ |\ u\in U_i\} \\
+&= w\mapsto \,\ua \{u(w)\ |\ u\in \bigcap_i U_i\} \\
+&= \lambda_X(\bigcap_i U_i)
+\end{align*}\hfill $\blacksquare$
+\end{proof}
+\begin{proposition}
+$\lambda$ is a natural transformation.
+\end{proposition}
+\begin{proof}
+For any morphism $a:X->Y$, the following diagram must commute:
+\[
+\xymatrix{
+ST(X)\ar[r]^{ST(a)}\ar[d]_{\lambda_X} & ST(Y)\ar[d]^{\lambda_Y} \\
+TS(X)\ar[r]_{TS(a)} &TS(Y)
+}
+\]
+\begin{align*}
+\lambda_Y\circ ST(a)(U) &= \lambda_Y(\ua \{a\circ u\ |\ u\in U\}) \\
+&= w\mapsto \,\ua \{f(w)\ |\ f\in \ua \{a\circ u\ |\ u\in U\}\} \\
+&= w\mapsto \,\ua \{a\circ u(w)\ |\ u\in U\}
+\end{align*}
+\begin{align*}
+TS(a)\circ \lambda_X(U) &= TS(a)(w\mapsto \,\ua \{u(w)|u\in U\}) \\
+&= w\mapsto \,\ua \{a(x)\ |\ x\in \ua \{u(w)\ |\ u\in U\}\} \\
+&= w\mapsto \,\ua \{a\circ u(w)\ |\ u\in U\}
+\end{align*}\hfill $\blacksquare$
+\end{proof}
+
+\begin{proposition}
+In the category of bounded complete domains, there is a distributive law with the upper powerdomain, using the natural transformation $\lambda$.
+\end{proposition}
+\begin{proof}
+\begin{description}
+\item[{[}$\boldsymbol{\lambda\circ S\eta^T = \eta^T S}${]}] \hfill \\
+\[
+\xymatrix{
+S\ar[r]^{S\eta^T}\ar[dr]_{\eta^T S} & ST\ar[d]^\lambda \\
+& TS
+}
+\]
+Let $U$ be in $S(X)$.
+\begin{align*}
+\lambda_X\circ S \eta^T(U) &= \lambda_X(\ua \{\chi_u\ |\ u\in U\}) \\
+&= w\mapsto \,\ua \{f(w)\ |\ f\in \ua \{\chi_u\ |\ u\in U\}\} \\
+&= w\mapsto \,\ua \{\chi_u(w)\ |\ u\in U\} \\
+&= w\mapsto \,\ua \{u\ |\ u\in U\} \\
+&= w\mapsto U \\
+&= \chi_U
+\end{align*}
+\begin{align*}
+\eta^T S(U) &= \chi_U
+\end{align*}
+\item[{[}$\boldsymbol{\lambda\circ \eta^S T = T\eta^S}${]}] \hfill \\
+\[
+\xymatrix{
+T\ar[r]^{\eta^S T}\ar[dr]_{T\eta^S} & ST\ar[d]^\lambda \\
+& TS
+}
+\]
+Let $f$ be in $T(X)$.
+\begin{align*}
+\lambda_X\circ \eta^S T(f) &= \lambda_X(\ua f) \\
+&= w\mapsto \,\ua \{g(w)\ |\ g\in \ua f\} \\
+&= w\mapsto \,\ua f(w)
+\end{align*}
+\begin{align*}
+T\eta^S(f) &= w\mapsto \,\ua f(w)
+\end{align*}
+\item[{[}$\boldsymbol{\lambda\circ S\mu^T = \mu^T S\circ T\lambda\circ\lambda T}${]}] \hfill \\
+\[
+\xymatrix{
+STT\ar[r]^{\lambda T}\ar[d]_{S\mu^T} & TST\ar[r]^{T\lambda} & TTS\ar[d]^{\mu^T S} \\
+ST\ar[rr]_\lambda & & TS
+}
+\]
+Let $U$ be in $STT(X)$.
+\begin{align*}
+\mu^T S\circ T\lambda_X \circ \lambda_X T(U) 
+&= \mu^T S\circ T\lambda_X(w\mapsto \,\ua \{u(w)\ |\ u\in U\}) \\
+&= \mu^T S(w\mapsto (z\mapsto \,\ua \{f(z)\ |\ f\in \,\ua \{u(w)\ |\ u\in U\}\})) \\
+&= \mu^T S(w\mapsto (z\mapsto \,\ua \{(u(w))(z)\ |\ u\in U\})) \\
+&= w\mapsto (z\mapsto \,\ua \{(u(w))(z)\ |\ u\in U\})(w) \\
+&= w\mapsto \,\ua \{(u(w))(w)\ |\ u\in U\}
+\end{align*}
+\begin{align*}
+\lambda_X\circ S\mu^T(U) 
+&= \lambda_X(\ua \{z\mapsto (u(z))(z)\ |\ u\in U\}) \\
+&= w\mapsto \,\ua \{f(w)\ |\ f\in \,\ua \{z\mapsto (u(z))(z)\ |\ u\in U\}\} \\
+&= w\mapsto \,\ua \{(z\mapsto (u(z))(z))(w)\ |\ u\in U\} \\
+&= w\mapsto \,\ua \{(u(w))(w)\ |\ u\in U\}
+\end{align*}
+\item[{[}$\boldsymbol{\lambda\circ\mu^S T = T\mu^S\circ \lambda S\circ S\lambda}${]}] \hfill \\
+\[
+\xymatrix{
+SST\ar[r]^{S\lambda}\ar[d]_{\mu^S T} & STS\ar[r]^{\lambda S} & TSS\ar[d]^{T\mu^S} \\
+ST\ar[rr]_\lambda & & TS
+}
+\]
+Let $U$ be in $SST(X)$.
+\begin{align*}
+T\mu^S\circ \lambda_X S\circ S\lambda_X(U)
+&= T\mu^S\circ \lambda_X S(\ua \{z\mapsto \,\ua \{f(z)\ |\ f\in u\}\ |\ u\in U\}) \\
+&= T\mu^S(w\mapsto \,\ua \{g(w)\ |\ g\in \,\ua \{z\mapsto \,\ua \{f(z)\ |\ f\in u\}\ |\ u\in U\}\}) \\
+&= T\mu^S(w\mapsto \,\ua \{(z\mapsto \,\ua \{f(z)\ |\ f\in u\})(w)\ |\ u\in U\}) \\
+&= T\mu^S(w\mapsto \,\ua \{\ua \{f(w)\ |\ f\in u\}\ |\ u\in U\}) \\
+&= w\mapsto \,\ua \bigcup_{u\in U}\{f(w)\ |\ f\in u\}
+\end{align*}
+\begin{align*}
+\lambda_X\circ \mu^S T(U) &= \lambda_X(\bigcup_{u\in U} u) \\
+&= w\mapsto \,\ua \{f(w)\ |\ f\in \bigcup_{u\in U} u\} \\
+&= w\mapsto \,\ua \bigcup_{u\in U}\{f(w)\ |\ f\in u\}
+\end{align*}
+\end{description} \hfill $\blacksquare$
+\end{proof}
+
+%Define the natural transformation $\lambda:TS(X)\to ST(X)$ by:
+%\begin{displaymath}
+%\lambda(f) = \{g\ |\ g(w)\in f(w), \forall w\in \{0,1\}^\omega\}
+%\end{displaymath}
+%
+%\begin{proposition}
+%For any bounded complete domain, $X$, $\lambda:TS(X)\to ST(X)$ is monotone.
+%\end{proposition}
+%\begin{proof}
+%If $f\sqsubseteq h$, then for all $w$, $f(w) \supseteq h(w)$.  Then
+%\begin{align*}
+%\lambda(f) &= \{g\ |\ g(w)\in f(w), \forall w\in \{0,1\}^\omega\} \\
+%&\supseteq  \{g\ |\ g(w)\in h(w), \forall w\in \{0,1\}^\omega\} \\
+%&= \lambda(h)
+%\end{align*}
+%\end{proof}
+%
+%\begin{proposition}
+%For any bounded complete domain, $X$, $\lambda:TS(X)\to ST(X)$ is Scott continuous.
+%\end{proposition}
+%\begin{proof}
+%Suppose $\{f_i\}$ is a directed family in $TS(X)$.  Then $\bigsqcup_i f_i = w\mapsto \bigcap_i f_i(w)$.
+%\begin{align*}
+%\lambda(\bigsqcup_i f_i) &= \{g\ |\ g(w)\in \bigcap_i f_i(w), \forall w\in \{0,1\}^\omega\} \\
+%&= \bigcap_i \{g\ |\ g(w)\in f_i(w), \forall w\in \{0,1\}^\omega\} \\
+%&= \bigcap_i \lambda(f_i)
+%\end{align*}
+%\end{proof}
+%
+%\begin{proposition}
+%$\lambda$ is a natural transformation.
+%\end{proposition}
+%\begin{proof}
+%\[
+%\xymatrix{
+%TS(X)\ar[r]^{TS(a)}\ar[d]_\lambda & TS(Y)\ar[d]^\lambda \\
+%ST(X)\ar[r]_{ST(a)} & ST(Y)
+%}
+%\]
+%\begin{align*}
+%\lambda\circ TS(a)(f) &= \lambda(w\mapsto \ua \bigcup_{x\in f(w)} a(x)) \\
+%&= \{g\ |\ g(w)\in \ua \bigcup_{x\in f(w)} a(x)\} \\
+%&= \ua \{g\ |\ g(w)\in \bigcup_{x\in f(w)} a(x)\} \\
+%&= \ua \{a\circ g\ |\ g(w)\in f(w)\} 
+%\end{align*}
+%\begin{align*}
+%ST(a)\circ \lambda(f) &= ST(a)(\{g\ |\ g(w)\in f(w)\}) \\
+%&= \ua \{a\circ g\ |\ g(w)\in f(w)\}
+%\end{align*}
+%\end{proof}
+%
+%\begin{proposition}
+%There is a distributive law between the monad of random choice and the upper powerdomain, using the natural transformation $\lambda$.
+%\end{proposition}
+%\begin{proof}
+%\begin{description}
+%\item[{[}$\boldsymbol{\lambda\circ T\eta^S = \eta^S T}${]}] \hfill \\
+%\[
+%\xymatrix{
+%T\ar[r]^{T\eta^S}\ar[dr]_{\eta^S T} & TS\ar[d]^\lambda \\
+%& ST
+%}
+%\]
+%\begin{align*}
+%\lambda\circ T\eta^S(f) &= \lambda(w\mapsto \ua f(w)) \\
+%&= \{g\ |\ g(w)\in \ua f(w)\} \\
+%&= \ua f \\
+%&= \eta^S T(f)
+%\end{align*}
+%\item[{[}$\boldsymbol{\lambda\circ \eta^T S = S\eta^T}${]}] \hfill \\
+%\[
+%\xymatrix{
+%S\ar[r]^{\eta^T S}\ar[dr]_{S\eta^T} & TS\ar[d]^\lambda \\
+%& ST
+%}
+%\]
+%\begin{align*}
+%\lambda\circ \eta^T S(U) &= \lambda(\chi_U) \\
+%&= \{g\ |\ g(w)\in U\} \\
+%&= \ua \bigcup_{u\in U} \chi_u
+%\end{align*}
+%\item[{[}$\boldsymbol{\lambda\circ T\mu^S = \mu^S T\circ S\lambda\circ\lambda S}${]}] \hfill \\
+%\[
+%\xymatrix{
+%TSS\ar[r]^{\lambda S}\ar[d]_{T\mu^S} & STS\ar[r]^{S\lambda} & SST\ar[d]^{\mu^S T} \\
+%TS\ar[rr]_\lambda & & ST
+%}
+%\]
+%
+%\item[{[}$\boldsymbol{\lambda\circ\mu^T S = S\mu^T\circ \lambda T\circ T\lambda}${]}] \hfill \\
+%\[
+%\xymatrix{
+%TTS\ar[r]^{T\lambda}\ar[d]_{\mu^T S} & TST\ar[r]^{\lambda T} & STT\ar[d]^{S\mu^T} \\
+%TS\ar[rr]_\lambda & & ST
+%}
+%\]
+%
+%\end{description} \hfill $\blacksquare$
+%\end{proof}

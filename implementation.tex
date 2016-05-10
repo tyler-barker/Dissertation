@@ -1,0 +1,482 @@
+\section{Functional Programming}
+
+The idea of a monad from category theory began to be applied to programming languages when Moggi developed a categorical semantics of computation using monads \cite{moggi1988computational}.  Wadler then used this idea to express features of functional programming languages using monads \cite{wadler1992essence}.  He generalized the functional programming structure of list comprehensions to a monad structure and showed that other programming features like exceptions and continuations could also be expressed using monads.  Wadler was one of the main designers of the Haskell programming language, in which monads play a pivotal role.
+
+Other functional programming languages may not explicitly use monads, but a programmer who thinks abstractly using monads can still make use of them.  Different forms of monads have been implemented in languages such as Scala, Python, C\#, OCaml, and many more.  However, although monads can be defined in these languages, there is no way to verify that the defined construct obeys the monad laws.  It can be checked that all of the relevant functions are defined and that everything is of the correct type, but there is no equational reasoning to prove that the required equations hold.  To this end, an interactive theorem prover, like Isabelle, can be used.
+
+\subsection{Haskell}
+
+The random choice monads represent the possible results of coin flips by a binary tree.  Developing an operational version of the monad should also contain some form of a binary tree.  A monad for binary leafy trees (ones with data values only at leaves) is supported in Haskell.  A possible implementation of this monad is shown in Figure~\ref{fig:leafytrees}.  In Haskell, a new datatype can be declared with the keyword \texttt{data}.  Here, given some type \texttt{a},  a new datatype called \texttt{Tree a} is created recursively.  For example, \texttt{Tree Int} will be a binary tree of integers.  The base case for this datatype is \texttt{Leaf a} which is a tree of height zero, only consisting of a root that contains some value in \texttt{a}.  The recursive case says that given two binary trees, we can combine them into one bigger tree where each of the given trees is a subtree.
+
+Now that the datatype is created, we can declare it to be a monad.  Just as in category theory, to form a monad, we can define the unit and Kleisli extension.  In Haskell, the unit is called \texttt{return} and is a function of type \texttt{a -> Tree a}.  Here the unit takes an element of \texttt{a} and creates the tree of height zero, where the root contains that same element of \texttt{a}.
+
+The Kleisli extension is denoted by \texttt{>>=} in Haskell and is a function with a type signature of \texttt{Tree a -> (a -> Tree b) -> Tree b}.  It is an infix operation, so the element of \texttt{Tree a} goes to the left and the function of type \texttt{a -> Tree b} goes to the right.  It then outputs an element of \texttt{Tree b}.  The Kleisli extension shown here  moves up a tree until it reaches a leaf with value $x$.  It then replaces $x$ with the entire tree given by \texttt{h x}.  This exactly mimics the behavior of the Kleisli extension used by Goubault{-}Larrecq and Varacca for their uniform continuous random variables.  
+\begin{figure}
+\begin{lstlisting}[language=Haskell]
+data Tree a = Leaf a | Branch (Tree a) (Tree a)
+
+instance Monad Tree where
+   return = Leaf
+   Leaf x >>= h = h x
+   Branch l r >>= h = Branch (l >>= h) (r >>= h)
+\end{lstlisting}
+\caption{The monad of leafy trees}
+\label{fig:leafytrees}
+\end{figure}
+
+Now to implement the $RC$ monad in Haskell, the datatype will be defined as above.
+\begin{lstlisting}[language=Haskell]
+data RC a = Leaf a | Node (RC a) (RC a)
+\end{lstlisting}
+If we wish to use the extended monad, $RC'$,which uses Scott closed sets instead of the antichains, then we can supply values of \texttt{a} at every level of the binary tree instead of just the leaves.  Here each node has a value of \texttt{a} along with its two subtrees.
+\begin{lstlisting}[language=Haskell]
+data RC' a = Leaf a | Node a (RC' a) (RC' a)
+\end{lstlisting}
+A datatype can be declared as a functor by defining the functor map, called \texttt{fmap}.  This has a type signature of \texttt{(a -> b) -> RC a -> RC b}.  This simply leaves the structure of the binary tree alone and applies a function \texttt{f} to each value of \texttt{a}
+\begin{lstlisting}[language=Haskell]
+instance Functor RC where 
+    fmap f (Leaf x) = Leaf (f x)
+    fmap f (Node l r) = Node (fmap f l) (fmap f r)
+    
+instance Functor RC' where 
+    fmap f (Leaf x) = Leaf (f x)
+    fmap f (Node x l r) = Node (f x) (fmap f l) (fmap f r)
+\end{lstlisting}
+Now we define some functions that will be useful in implementing the monad.  First we define \texttt{getTree}, a function that uses a list of coin flips to move up a binary tree.  If it reaches the top of the tree, a leaf, before using all the coin flips, then the remaining flips are disregarded and the leaf is returned.  If it uses the coin flips without reaching the top, then it returns the remaining subtree.  Here a coin flip is represented by an integer.  A zero represents tails and any nonzero integer represents heads.
+\begin{lstlisting}[language=Haskell]
+getTree :: RC a -> [Int] -> RC a
+getTree (Leaf x) _ = (Leaf x)
+getTree t [] = t
+getTree (Node l r) (0:xs) = getTree l xs
+getTree (Node l r) (_:xs) = getTree r xs
+\end{lstlisting}
+The definition for \texttt{RC'} is almost identical.  Also, for \texttt{RC'}, where every level of the trees has values, we can define a function \texttt{getValue} that uses a list of coin flips to pick out a value in the tree.
+\begin{lstlisting}[language=Haskell]
+getValue :: RC' a -> [Int] -> a
+getValue (Leaf x) _ = x
+getValue (Node x _ _) [] = x
+getValue (Node _ l r) (0:xs) = getValue l xs
+getValue (Node _ l r) (_:xs) = getValue r xs
+\end{lstlisting}
+
+Now for the monad, the unit will be the same as above.
+\begin{lstlisting}[language=Haskell]
+unit :: a -> RC a
+unit x = Leaf x
+\end{lstlisting}
+For the Kleisli extension, we define a helper function \texttt{kleisli}.  This is similar to the Kleisli extension defined above, except that as it moves up the tree, it keeps track of the coin flips needed to get to its location.  Therefore, it needs another argument with a list of integers.  Let \texttt{f} be function of type \texttt{a -> RC b} that is being extended.  When \texttt{kleisli} gets to the top of the tree, which is of the form \texttt{Leaf x}, it applies \texttt{f} to \texttt{x} to get another tree, but it does not use this entire tree.  Instead, it uses the tracked coin flips to traverse this new tree. 
+\begin{lstlisting}[language=Haskell]
+kleisli :: (a -> RC b) -> RC a -> [Int] -> RC b
+kleisli f (Leaf x) xs = getTree (f x) xs
+kleisli f (Node l r) xs = Node (kleisli f l (xs++[0])) 
+                               (kleisli f r (xs++[1]))
+\end{lstlisting}
+For \texttt{RC'}, a slight change is needed to handle the intermediate values.
+\begin{lstlisting}[language=Haskell]
+kleisli :: (a -> RC' b) -> RC' a -> [Int] -> RC' b
+kleisli f (Leaf x) xs = getTree (f x) xs
+kleisli f (Node x l r) xs = Node (getValue (f x) xs)
+                                 (kleisli f l (xs++[0])) 
+                                 (kleisli f r (xs++[1]))
+\end{lstlisting}
+Now we can declare the monad instances.
+\newpage
+\begin{lstlisting}[language=Haskell]
+instance Monad RC where
+	return = unit
+	m >>= f = kleisli f m []
+	
+instance Monad RC' where
+	return = unit
+	m >>= f = kleisli f m []
+\end{lstlisting}
+
+From now on, we will only work with \texttt{RC'}, so that our binary trees have values at all levels.
+Here we create two random choices of integers.
+\begin{lstlisting}[language=Haskell]
+tree1 = Node 1 (Leaf 2) (Leaf 3)
+tree2 = Node 5 (Leaf 6) (Node 7 (Leaf 8) (Leaf 9))
+\end{lstlisting}
+We use a function \texttt{showRC} to display these random choices.  Using \texttt{showRC tree1} results in:
+\begin{verbatim}
+    2
+1
+    3
+\end{verbatim}
+and \texttt{showRC tree2} outputs:
+\begin{verbatim}
+    6
+5
+        8
+    7
+        9
+\end{verbatim}
+Instead of using the monad operations like \texttt{>>=} directly, Haskell has a \texttt{do} notation that provides syntactic sugar when dealing with monadic elements.  For example, to double every value of \texttt{tree1}, we can use the following code:
+\begin{lstlisting}[language=Haskell]
+tree3 = do
+	i <- tree1
+	return (2*i)
+\end{lstlisting}
+Then \texttt{tree3} would be the random choice represented by:
+\begin{verbatim}
+    4
+2
+    6
+\end{verbatim}
+To lift the addition operation on integers to an operation on random choices of integers, we can write:
+\begin{lstlisting}[language=Haskell]
+tree4 = do
+	i <- tree1
+	j <- tree2
+	return (i+j)
+\end{lstlisting}
+This results in the random choice:
+\begin{verbatim}
+    8
+6
+        11
+    10
+        12
+\end{verbatim}
+In Section \ref{kleislilift}, it was shown how the Kleisli extension lifts a binary operation.  The behavior shown here is same as was described in that section.
+
+To make a random choice, we can use the standard Random library in Haskell.  To simulate flipping a coin, we first make a coin datatype.
+\begin{lstlisting}[language=Haskell]
+data Coin = Heads | Tails
+\end{lstlisting}
+We can declare \texttt{Coin} to be an instance of \texttt{Random} by defining a function that maps a random choice of a number to a random choice of \texttt{Heads} or \texttt{Tails}.
+\begin{lstlisting}[language=Haskell]
+instance Random Coin where
+  random g = case random g of 
+               (r,g') | r < 1/2   = (Tails, g')
+                      | otherwise = (Heads, g')
+\end{lstlisting}
+Here we a given a random choice of a number between zero and one.  By using \texttt{1/2}, we create a fair coin.  This can be changed to produce a biased coin.
+
+Now we use this to create a function \texttt{choose :: RC' a -> Int -> IO a} that when given a tree \texttt{t} and nonnegative integer \texttt{n}, it uses \texttt{n} coin flips to traverse \texttt{t} and outputs the value at its final location.  Notice that the output is of type \texttt{IO a} instead of just \texttt{a}.  The IO monad in Haskell contains actions that use input or output.  In this case, the act of getting a random value is viewed as input to the rest of the function.  Therefore, the output must be contained in the IO monad.
+\newpage
+\begin{lstlisting}[language=Haskell]
+choose :: RC' a -> Int -> IO a
+choose (Leaf _ x) _  = return x
+choose (Node _ x _ _) 0 = return x
+choose (Node _ x l r) n = do
+                     c <- randomIO
+                     (if (c==Heads) then (choose r (n-1))
+                                    else (choose l (n-1)))
+\end{lstlisting}
+Using this function on our first tree, \texttt{choose tree1 0} will result in the IO action that always produces the value \texttt{1}.  No coins are flipped, so the function just stays at the root of the tree.  Using a positive number of coin flips, \texttt{choose tree1 1} will now result in the IO action that produces the values \texttt{2} and \texttt{3} each with equal probability.
+
+As described above, using the Kleisli extension to add two random numbers will not choose the two numbers independently of one another.  Each coin flip will be used in both random choices.  However, if it is desired that two independent choices be made, this can still be done by making the random choices before performing the addition.
+\begin{lstlisting}[language=Haskell]
+sequentialAdd = do
+	i <- (choose tree1 1)
+	j <- (choose tree2 2)
+	return (i+j)
+\end{lstlisting}
+Here, \texttt{i} and \texttt{j} are in the IO monad, so the addition uses its Kleisli extension, which performs actions sequentially.  Therefore, one coin flip is used to choose a number from \texttt{tree1}, then two more coin flips are used to choose a number from \texttt{tree2}.  Finally, the two numbers get added together.
+
+It is even possible to perform the independent random choices concurrently, using Haskell's \texttt{Async} library.
+\begin{lstlisting}[language=Haskell]
+concurrentAdd = do
+	(i,j) <- concurrently (choose tree1 1) (choose tree2 2)
+	return (i+j)
+\end{lstlisting}
+Here, the random choices are made concurrently, but the coin flips are made independently.
+
+%\begin{lstlisting}[language=Scala]
+%for {
+%  i <- List(1, 2)
+%  j <- List(3, 4)
+%}
+%yield(i * j)
+%\end{lstlisting}
+%
+%This takes multiplication, a binary operation on integers, and lifts the operation to work on lists of integers.  The list monad is fundamental in functional programming.  In Scala, \texttt{map} is the functor map.  For lists, it takes a function and applies the function to each element of the list, returning a new list with the resulting outputs.  \texttt{flatten} is the monad multiplication, which for a list of lists, flattens it into one list by concatenation.  Finally, \texttt{flatMap} is the Kleisli extension of the monad.  In Scala, to use the \texttt{for} expressions on a data structure, \texttt{map} and \texttt{flatMap} need to be defined, because the expressions are merely syntactic sugar that gets converted to calls of \texttt{map} and \texttt{flatMap}.  The above \texttt{for} expression is equivalent to:
+%\begin{lstlisting}[language=Scala]
+%List(1,2) flatMap {
+%  a => List(3,4) map {
+%    b => a * b
+%  }
+%}
+%\end{lstlisting}
+%This evaluates to
+%\begin{lstlisting}[language=Scala]
+%List(1,2) flatMap {
+%  a => List(a * 3, a * 4)
+%} 
+%\end{lstlisting}
+%This is equivalent to \texttt{flatten (List(List(3,4), List(6,8)))} which finally gets evaluated to \texttt{List(3,4,6,8)}.
+
+\subsection{Scala}
+
+The Scala programming language is an object-oriented and functional programming language designed to be compiled and executed on a Java virtual machine.  Unlike Haskell, Scala does not  use category theory terms like functor and monad by name, but its type system still allows for the creation of such objects.  Similar to Haskell's \texttt{do} notation, Scala has \texttt{for} expressions that provide syntactic sugar for monad-like objects.
+
+In Scala, the random choice functor can be implemented as a trait, with 
+\begin{lstlisting}[language=Scala]
+trait RC[+A]
+\end{lstlisting}
+The trait can be thought of as a functor that acts on the category of types.  \texttt{A} is a generic type, and \texttt{+A} means that the functor is covariant.  This trait consists of a tree with values of type \texttt{A}, and the tree is defined recursively with nodes and leaves.  
+
+\begin{lstlisting}[language=Scala]
+case class Node[A](value: A, left: RC[A], right: RC[A]) extends RC[A]
+case class Leaf[A](value: A) extends RC[A]
+\end{lstlisting}
+
+To describe how the functor acts on functions, the \texttt{map} function is defined.  Just as in the $RC$ functor, the tree structure is not changed, so a leaf stays a leaf, and node stays a node.
+\begin{lstlisting}[language=Scala]
+def map[B](f: A => B): RC[B] = this match {
+    case l: Leaf[A] => Leaf(f(l.value))
+    case n: Node[A] => Node(f(n.value), n.left map f, n.right map f)
+}
+\end{lstlisting}
+The unit of the monad is given as follows:
+\begin{lstlisting}[language=Scala]
+private def unit[B] (value: B) = Leaf(value)
+\end{lstlisting}
+This simply takes a value of a base type $B$ and creates a leaf containing that value.  This corresponds to $\eta(d) = (\epsilon, \chi_d)$.
+
+To define the Kleisli extension of the monad, two helper functions are first defined.  The function $\texttt{getValue}$ takes a list of zeroes and ones (which represents a word in $\{0,1\}^\infty$) and gets the value stored at that word.  The function $\texttt{getTree}$ also takes a word of zeroes and ones and gets the section of the tree above that word.
+
+\begin{lstlisting}[language=Scala]
+def getValue(word: List[Int]): A = this match {
+    case n: Node[A] => if (word == List()) n.value
+            else if (word.head == 0) n.left.getValue(word.tail)
+            else n.right.getValue(word.tail)
+    case l: Leaf[A] => l.value
+}
+
+def getTree(word: List[Int]): RV[A] = this match {
+    case n: Node[A] => if (word == List()) n
+            else if (word.head == 0) n.left.getTree(word.tail)
+            else n.right.getTree(word.tail)
+    case l: Leaf[A] => l
+}
+\end{lstlisting}
+Now given a function \texttt{f:A => RV[B]}, the Kleisli extension, called \texttt{flatMap} in Scala, must take an object in \texttt{RV[A]} and return an object in \texttt{RV[B]}.
+
+\begin{lstlisting}[language=Scala]
+def flatMap[B](f: A => RV[B]): RV[B] = {
+  def kleisli(t: RV[A], word: List[Int]): RV[B] = {
+    t match {
+      case l: Leaf[A] => f(l.value).getTree(word)
+      case n: Node[A] => Node(f(n.value).getValue(word),  
+                              kleisli(n.left, word ++ List(0)),
+                              kleisli(n.right, word ++ List(1)))
+      }
+  }
+  kleisli(this, List())
+}
+\end{lstlisting}
+The important thing to notice here is that when moving up the tree, a zero or one is added to \texttt{word} depending on the direction taken.  Then when a leaf is reached, the function \texttt{f} is applied to get an object of \texttt{RV[B]}.  However, only the portion of that tree above \texttt{word} is used.  This is what differentiates this Kleisli extension from the original attempt at one.
+
+With the Kleisli extension defined, the multiplication of the monad, called \texttt{flatten} in Scala, can easily be defined.
+\begin{lstlisting}[language=Scala]
+def flatten[B] (tree: RV[RV[B]]): RV[B] = tree flatMap (x => x)
+\end{lstlisting}
+Now Scala's \texttt{for} expressions can be used with these objects.  Let's create two trees containing integers:
+\begin{lstlisting}[language=Scala]
+val tree1:RV[Int] = Node(1, Leaf(2), Leaf(3));
+\end{lstlisting}
+This can be displayed as:
+\begin{verbatim}
+    2
+1
+    3
+\end{verbatim}
+For the second tree:
+\begin{lstlisting}[language=Scala]
+val tree2:RV[Int] = Node(5, Leaf(6), Node(7, Leaf(8), Leaf(9)));
+\end{lstlisting}
+This can be displayed as:
+\newpage
+\begin{verbatim}
+    6
+5
+        8
+    7
+        9
+\end{verbatim}
+The binary operation of addition on integers can be lifted to these trees of integers.
+\begin{lstlisting}[language=Scala]
+val tree3 = for (i <- tree1; j <- tree2) yield i+j
+\end{lstlisting}
+which results in:
+\begin{verbatim}
+    8
+6
+        11
+    10
+        12
+\end{verbatim}
+For a randomized algorithm, only one branch of the tree should be traversed, in a random direction.  Scala's built in \texttt{Random} library can be used as the oracle needed.
+\begin{lstlisting}[language=Scala]
+private val oracle = new Random()
+  
+def choose(num: Int): A = this match {
+    case l: Leaf[A] => l.value
+    case n: Node[A] => {
+        if (num==0) n.value
+        else if (oracle.nextBoolean) n.right.choose(num-1)
+        else n.left.choose(num-1)
+    }
+}
+\end{lstlisting}
+Now calling \texttt{tree3.choose(2)} will return 8 with $\frac{1}{2}$ probability or 11 or 12 with $\frac{1}{4}$ probability.
+
+\subsection{Isabelle}
+
+As stated above, we can define monads in programming languages like Haskell and Scala; however, there is no way to ensure that our definition obeys the monad laws.  To this end, we can use an interactive theorem prover like Isabelle.
+
+Isabelle is a proof assistant based off of LCF, Scott's logic of computable functions (PCF is a programming language based on LCF).  Isabelle provides a functional programming language along with a logical system that can be used to prove properties of programs (Isabelle can actually be used to express and prove theorems about many mathematical concepts, but we are only concerned with the functional programming aspect).
+
+Just like in Haskell and Scala, we can write programs to define new datatypes and functions.  First, we define our datatype.
+\begin{lstlisting}[language=Isabelle]
+datatype 'a rc = 
+  Leaf 'a |
+  Node 'a "'a rc" "'a rc"
+\end{lstlisting}
+We then create the functions \texttt{getValue} and \texttt{getTree}, whose (omitted) definitions are nearly identical to the analogous Haskell functions.  Now, some simple lemmas can be proven in Isabelle.
+\begin{lstlisting}[language=Isabelle]
+lemma: "getTree t ys = Leaf a *$\Longrightarrow$* getTree t (ys @ b) = Leaf a"
+  apply (induct t ys rule: getTree.induct)
+  apply simp_all
+  done
+\end{lstlisting}
+This lemma states that if using the \texttt{getTree} function results in a leaf, then calling the same function but with extra bits will produce the same result.  A leaf is returned if the tree traversal reaches the end of the tree.  In this case, adding more bits will not change anything since there is nowhere else to go.  In Isabelle, this can be proven by structural induction, using the definition of \texttt{getTree}.
+
+When proving a theorem in Isabelle, there is always a current goal that needs to be proved.  At the beginning, the desired theorem is the goal.  In the previous lemma, the first step involves structural induction.  This replaces the goal with subgoals containing the base and inductive cases.  Then using \texttt{apply simp\_all} attempts to simplify each goal by using any relevant definitions.  For this lemma, this is all that is needed to finish the proof.
+
+We can prove two more simple lemmas about the two functions.
+\begin{lstlisting}[language=Isabelle]
+lemma: "getTree t (xs @ ys) = getTree (getTree t xs) ys"
+  apply (induction t xs rule:getTree.induct)
+  apply auto
+  done
+  
+lemma: "getValue t (xs @ ys) = getValue (getTree t xs) ys"
+  apply (induct t xs rule: getTree.induct)
+  apply auto
+  done
+\end{lstlisting}
+Again, structural induction is used to prove these two lemmas.  The proofs are finished by using \texttt{apply auto}.  This uses built-in automated tools to look for a solution.  Unfortunately, this only works for very basic proofs.
+
+To prove the monad laws, the unit and Kleisli extension must be defined.
+\begin{lstlisting}[language=Isabelle]
+fun unit :: "'a *$\Rightarrow$* 'a rc" where
+  "unit x = Leaf x"
+  
+fun flatMap :: "('a *$\Rightarrow$* 'b rc) *$\Rightarrow$* 'a rc *$\Rightarrow$* 'b rc" where
+  "flatMap f x = kleisli f x []"   
+\end{lstlisting}
+The function \texttt{kleisli} is defined as it was in Haskell.  Now, the monad laws can be proved.
+
+\begin{lstlisting}[language=Isabelle]
+lemma "flatMap f (unit x) = f x"
+  by simp
+  
+lemma "(flatMap unit) x = x"
+  by auto
+  
+lemma "(flatMap k) ((flatMap h) t) = 
+       (flatMap (*$\lambda$*x. (flatMap k) (h x))) t"
+\end{lstlisting}
+The first two monad laws are trivially proven.  The proof of the third monad law is omitted here and is much more involved.  Its proof can be found in the included source code.
+
+As stated above, the implementation of the monad in functional languages like Haskell and Scala does not verify that the monad laws are obeyed.  Furthermore, the order structure on the objects on which the monad is defined is not explicitly present.  However, we can define the order in Isabelle and use it to prove that the Kleisli extension is monotone.
+
+We start by importing the \texttt{Porder} theory which has definitions and some simple lemmas proven about partial orders.  A partial order must have a defined order relation, \texttt{below}, which can be represented with the infix operator $\sqsubseteq$.  Here we define the order relation.
+\begin{lstlisting}[language=Isabelle]
+fun myBelow :: "'a::below rc *$\Rightarrow$* 'a rc *$\Rightarrow$* bool" where
+  "myBelow (Leaf x) (Leaf y) = below x y" |
+  "myBelow (Leaf x) (Node y l r) = below x y" |
+  "myBelow (Node x l r) (Leaf y) = False" |
+  "myBelow (Node x l r) (Node y l2 r2) = 
+    (below x y *$\wedge$* myBelow l l2 *$\wedge$* myBelow r r2)"
+\end{lstlisting}
+Now we use \texttt{myBelow} to instantiate the order relation.
+\begin{lstlisting}[language=Isabelle]
+instantiation rc :: (below) below
+begin
+  definition below_rc_def [simp]:
+    "(op *$\sqsubseteq$*) *$\equiv$* (*$\lambda$*x y . myBelow x y)"
+  instance ..
+end
+\end{lstlisting}
+Now to instantiate \texttt{rc} as a partial order, we must prove that the order relation is reflexive, transitive, and antisymmetric.  The proofs for the second two are omitted here.
+\begin{lstlisting}[language=Isabelle]
+lemma refl_less_rc: "(x::('a::po) rc) *$\sqsubseteq$* x"
+  apply (induction x)
+  apply simp
+  apply auto
+  done
+  
+lemma antisym_less_rc: "(x::('a::po) rc) *$\sqsubseteq$* y *$\Longrightarrow$* y *$\sqsubseteq$* x *$\Longrightarrow$* x = y"
+
+lemma trans_less_rc: "(x::('a::po) rc) *$\sqsubseteq$* y *$\Longrightarrow$* y *$\sqsubseteq$* z *$\Longrightarrow$* x *$\sqsubseteq$* z"
+\end{lstlisting}
+With these proven, we instantiate \texttt{rc} as a partial order.
+\begin{lstlisting}[language=Isabelle]
+instantiation rc :: (po)po
+begin
+  instance
+  apply intro_classes
+  apply (metis refl_less_rc)
+  apply (metis trans_less_rc)
+  apply (metis antisym_less_rc)
+  done
+end
+\end{lstlisting}
+Up to this point, we have represented the monad using all binary trees.  However, not all binary trees are valid elements of the monad.  For an element $(M,f)$ of the $RC'$ monad, the function $f$ has to be Scott continuous, thus monotone.  We can verify this by making sure that the values get bigger as we traverse the binary tree.
+\begin{lstlisting}[language=Isabelle]
+fun rc_order :: "('a::po) rc *$\Rightarrow$* bool" where
+  "rc_order (Leaf x) = True" |
+  "rc_order (Node x l r) = (
+    x *$\sqsubseteq$* (getValue l []) *$\wedge$* 
+    x *$\sqsubseteq$* (getValue r []) *$\wedge$* 
+    rc_order l *$\wedge$* 
+    rc_order r
+  )" 
+\end{lstlisting}
+Now we can prove that if $x\sqsubseteq y$, then if you traverse both trees in the same direction and pick out a value, then the value you pick from $x$ will be less than or equal to the value you pick from $y$.  Here, \texttt{xs} is an arbitrary list of booleans.
+\newpage
+\begin{lstlisting}[language=Isabelle]
+lemma getValue_order: "
+  rc_order x *$\Longrightarrow$* 
+  rc_order y *$\Longrightarrow$* 
+  x *$\sqsubseteq$* y *$\Longrightarrow$* 
+  getValue x xs *$\sqsubseteq$* getValue y xs
+"
+\end{lstlisting}
+For the Kleisli extension, there are functions of type \texttt{'a} $\Rightarrow$ \texttt{'b rc}.  But not all functions are valid.  We need to make sure that all binary trees in the image have the \texttt{rc\_order} property defined above.  We define this property here.
+\begin{lstlisting}[language=Isabelle]
+definition ordered :: "('a::po *$\Rightarrow$* 'a rc) *$\Rightarrow$* bool" where
+  "ordered f = (*$\forall$* x.(rc_order (f x)))"
+\end{lstlisting}
+Finally, we of course need our functions to be monotone.  We can import the theory \texttt{Cont} which defines the monotonicity of functions using the definition \texttt{monofun}.
+\begin{lstlisting}[language=Isabelle]
+definition monofun :: "('a *$\Rightarrow$* 'b) *$\Rightarrow$* bool" where
+  "monofun f = (*$\forall$*x y. x *$\sqsubseteq$* y *$\longrightarrow$* f x *$\sqsubseteq$* f y)"
+\end{lstlisting}
+Before proving that the Kleisli extension is monotone, we first show that its image consists of valid elements.
+\begin{lstlisting}[language=Isabelle]
+lemma "
+  monofun f *$\Longrightarrow$*
+  ordered f *$\Longrightarrow$*
+  rc_order x *$\Longrightarrow$* 
+  rc_order (flatMap f x)
+"
+\end{lstlisting}
+We end by proving the monotonicity of the Kleisli extension.
+\begin{lstlisting}[language=Isabelle]
+lemma "
+  monofun f *$\Longrightarrow$*
+  ordered f *$\Longrightarrow$* 
+  rc_order x *$\Longrightarrow$* 
+  rc_order y *$\Longrightarrow$* 
+  x *$\sqsubseteq$* y *$\Longrightarrow$* 
+  (flatMap f x) *$\sqsubseteq$* (flatMap f y)
+"
+\end{lstlisting}
+Again, all omitted proofs can be found in the appendix.
+
+\input{rpcf}
